@@ -60,7 +60,3 @@ Due to the nature of containers having multiple events (unlike single element), 
 ### Should this polyfill support additional elements?
 
 There will be new performance entries when there's manipulation happening within a container, such as addition of new children.
-
-## TODO - Handle mutation observer for new incoming changes below a container
-
-root
