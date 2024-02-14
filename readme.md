@@ -59,4 +59,4 @@ Due to the nature of containers having multiple events (unlike single element), 
 
 ### Should this polyfill support additional elements?
 
-There will be new performance entries when there's manipulation happening within a container, such as addition of new children.
+There will be new performance entries when there's DOM mutation happening within a container, such as addition of new children. The observer currently fires new entries when this happens if they have caused new paint events.
