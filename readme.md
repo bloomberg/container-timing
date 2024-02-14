@@ -25,6 +25,7 @@ const myObserver = new PerformanceObserver((list) => {
       "element": div.container,
       "entryType": "container-element",
       "renderTime": 49.5,
+      "startTime": 49.5,
       "id": "",
       "identifier": "",
       "lastPaintedSubElement": div.cell,
