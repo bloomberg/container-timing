@@ -38,8 +38,8 @@ observer.observe();
 
 The difference between a container-element entry is:
 
-1. It's entryType is "container-element"
-2. It holds a "lastPaintedSubElement" field to show which inner element caused the most recent paint event.
+1. It's entryType is `container-element`
+2. It holds a `lastPaintedSubElement` field to show which inner element caused the most recent paint event.
 
 ## Examples
 
