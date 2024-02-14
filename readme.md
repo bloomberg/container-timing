@@ -1,4 +1,4 @@
-# Element Timing Polyfill for containers
+# Element Timing For Containers Polyfill
 
 This polyfill allows developers to support element timing on containers (like `div`s or `section`s). This will fill a limitation which element-timing is [currently unable](https://github.com/WICG/element-timing/issues/79) to do. If you're working on a component and need better heuristics of when that component has been painted you can tag it with attributes and receive events similar to [`element-timing`](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceElementTiming).
 
@@ -6,7 +6,7 @@ This polyfill allows developers to support element timing on containers (like `d
 
 This polyfill should be loaded in the head or as early as possible so it can annotate elements needed for timing when the observer runs. At the very latest it should be loaded before you make the call to initiate the observer.
 
-Add this polyfill to the top your page then use the `PerformanceObserver` to mark entries. This polyfill will intercept calls from the Observer and include any containers you wish to keep track off. You will also need to mark containers you're interested in tracking with the `elementtiming` attribute, just like you would on individual elements. See the example below:
+Add this polyfill to the top your page then use the `PerformanceObserver` to mark entries. From this point you can use the `PerformanceObserver` as you normally would. This polyfill will intercept calls from the observer and include any containers you wish to keep track off. You will also need to mark containers you're interested in tracking with the `elementtiming` attribute, just like you would on individual elements. See the example below:
 
 **Markup**
 
