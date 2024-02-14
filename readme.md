@@ -26,7 +26,6 @@ const myObserver = new PerformanceObserver((list) => {
       "entryType": "container-element",
       "id": "",
       "identifier": "",
-      "percentagePainted": 0.88,
       "lastPaintedSubElement": div.cell,
       "url": ''
     **/
