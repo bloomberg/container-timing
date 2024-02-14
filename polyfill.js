@@ -70,6 +70,7 @@ class ContainerPerformanceObserver {
       if (child.hasAttribute("elementtiming")) {
         // We should keep track of elements which were already marked with element timing so we can still display those results
         child.setAttribute("initial-elementtiming-set", "true");
+        return;
       }
 
       child.setAttribute("elementtiming", INTERNAL_ATTR_NAME);
@@ -167,6 +168,7 @@ class ContainerPerformanceObserver {
         resolvedRootData.url = entry.url;
         resolvedRootData.renderTime = entry.renderTime;
         resolvedRootData.lastPaintedSubElement = entry.element;
+        resolvedRootData.startTime ??= entry.startTime;
 
         // Because we've updated a container we should mark it as updated so we can return it with the list
         containerRootUpdates.add(closetRoot);
@@ -194,7 +196,9 @@ class ContainerPerformanceObserver {
           renderTime: resolvedRootData.renderTime,
           url: resolvedRootData.url,
           name: resolvedRootData.name,
+          identifier: root.getAttribute("elementtiming"),
           lastPaintedSubElement: resolvedRootData.lastPaintedSubElement,
+          startTime: resolvedRootData.startTime,
         });
       });
 
