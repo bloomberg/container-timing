@@ -42,6 +42,20 @@ The difference between a container-element entry is:
 1. It's entryType is `container-element`
 2. It holds a `lastPaintedSubElement` field to show which inner element caused the most recent paint event.
 
+## Entry Interface
+
+Entries are similar to the [interface](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceElementTiming) for element-timing:
+
+- `duration` - Always returns 0 as duration does not apply to this interface.
+- `entryType` - `container-element` for entries which happen on container elements
+- `name` - Returns `image-paint` for images and text-paint` for text. This data will come from the most recent paint entry within this container.
+- `startTime` - Returns the start time of the first paint within this container, once this value is set it does not change, even if there are subsequent entries later on.
+- `element` - An Element representing the element we are returning information about.
+- `id` - A string which is the `id` of the element
+- `identifier` - A string which is the value of the elementtiming attribute on the element.
+- `renderTime` - A DOMHighResTimeStamp with the renderTime of the sub element which had the most recent paint.
+- `lastPaintedSubElement` - A reference to the sub element which had the most recent paint.
+
 ## Examples
 
 You can open the HTML of each example and look in the dev tools console to see what the event looks like.
