@@ -1,4 +1,4 @@
-# Container Timing Polyfill
+# Element Timing Polyfill for containers
 
 This polyfill allows developers to support element timing on containers (like `div`s or `section`s). This will fill a limitation which element-timing is [currently unable](https://github.com/WICG/element-timing/issues/79) to do. If you're working on a component and need better heuristics of when that component has been painted you can tag it with attributes and receive events similar to [`element-timing`](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceElementTiming).
 
@@ -6,18 +6,18 @@ This polyfill allows developers to support element timing on containers (like `d
 
 This polyfill should be loaded in the head or as early as possible so it can annotate elements needed for timing when the observer runs. At the very latest it should be loaded before you make the call to initiate the observer.
 
-Add this polyfill to the top your page and use the `ContainerPerformanceObserver` to mark entries. This API loosely follows the [PerformanceObserver](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceObserver) interface. You will also need to mark containers you're interested in tracking with the `containertiming` attribute. See the example below:
+Add this polyfill to the top your page then use the `PerformanceObserver` to mark entries. This polyfill will intercept calls from the Observer and include any containers you wish to keep track off. You will also need to mark containers you're interested in tracking with the `elementtiming` attribute, just like you would on individual elements. See the example below:
 
 **Markup**
 
 ```html
-<div containertiming>...some content</div>
+<div elementtiming>...some content</div>
 ```
 
 **JS**
 
 ```js
-const myObserver = new ContainerPerformanceObserver((list) => {
+const myObserver = new PerformanceObserver((list) => {
   list.getEntries().forEach((entry) => {
     console.log(entry);
     /**
@@ -27,9 +27,7 @@ const myObserver = new ContainerPerformanceObserver((list) => {
       "id": "",
       "identifier": "something",
       "percentagePainted": 0.88,
-      "numDescendantsPainted": 137,
-      "numDescendants": 125,
-      "renderTime": 77.0832,
+      "lastPaintedSubElement": div.cell,
       "url": ''
     **/
   });
@@ -38,29 +36,30 @@ const myObserver = new ContainerPerformanceObserver((list) => {
 observer.observe();
 ```
 
-## Adding hints to the observer
+The difference between a container-element entry is:
 
-The polyfill won't know the difference between an element that is for decoration and an element that may hold text in future, you can help mark elements which should hold content with an elementtiming attribute. This hint that we're expect content to load inside this div. For example
+1. It's entryType is "container-element"
+2. It holds a "lastPaintedSubElement" field to show which inner element caused the most recent paint event.
 
-```html
-<section containertiming>
-  <div>some text content</div>
-  <div></div>
-  <!-- The second div will have content loaded in via ajax -->
-</section>
-```
+## Examples
 
-As far as the containertiming polyfill is concerned, this section is fully painted (because it doesn't know about teh second div). However you can add this instead.
+You can open the HTML of each example and look in the dev tools console to see what the event looks like.
 
-```html
-<section containertiming>
-  <div>some text content</div>
-  <div elementtiming></div>
-  <!-- The second div will have content loaded in via ajax -->
-</section>
-```
+## FAQs
 
-Now we will won't get a 100% painted until that div is content rendered. For a real-world example see [The Placeholder Problem](./examples/tables/readme.md#the-placeholder-problem)
+### Should the user know how much has painted?
+
+When we get paint events for a container its difficult to know if its fully rendered or not. In our polyfill we will fire multiple times for each new paint happening in a container. Just like LCP developers can choose the most recent candidate as their paint time.
+
+That being said, this polyfill does provide a "lastPaintedElement" field which lets developers track which element caused the last paint update.
+
+### Should we stop observing on interaction?
+
+Due to the nature of containers having multiple events (unlike single element), we may want to stop observing once there's interaction so we have the concept of a "final candidate". This would let developers know the renderTime of the last paint after the page has loaded.
+
+### Should this polyfill support additional elements?
+
+There will be new performance entries when there's manipulation happening within a container, such as addition of new children.
 
 ## TODO - Handle mutation observer for new incoming changes below a container
 

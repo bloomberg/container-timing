@@ -1,5 +1,4 @@
-globalThis.elementsPainted = 0;
-const observer = new ContainerPerformanceObserver((list) => {
+const observer = new PerformanceObserver((list) => {
   list.getEntries().forEach((entry) => {
     console.log(entry);
   });
