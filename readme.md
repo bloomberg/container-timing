@@ -22,7 +22,7 @@ const myObserver = new PerformanceObserver((list) => {
     console.log(entry);
     /**
       "duration": 0,
-      "element": {},
+      "element": div.container,
       "entryType": "container-element",
       "renderTime": 49.5,
       "id": "",
