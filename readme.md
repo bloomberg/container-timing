@@ -60,6 +60,10 @@ Entries are similar to the [interface](https://developer.mozilla.org/en-US/docs/
 
 You can open the HTML of each example and look in the dev tools console to see what the event looks like.
 
+- [Table Example](./examples/table/table.html)
+- [DOM Updates Example](./examples/adding-content/index.html)
+- [Shadow DOM](./examples/shadow-dom/index.html)
+
 ## FAQs
 
 ### Should the user know how much has painted?
