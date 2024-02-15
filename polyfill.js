@@ -91,11 +91,7 @@ class ContainerPerformanceObserver {
     // Locate container nodes which have "elementtiming" set
     this.findAndSetRoots();
 
-    // Start searching for element timing elements
-    this.nativePerformanceObserver.observe({
-      type: "element",
-      buffered: options.buffered ?? true,
-    });
+    this.nativePerformanceObserver.observe(options);
 
     // Options for the observer (which mutations to observe)
     const config = { attributes: false, childList: true, subtree: true };
@@ -191,6 +187,9 @@ class ContainerPerformanceObserver {
         const resolvedRootData = this.containerRoots.get(root);
         containerEntries.push({
           duration: 0,
+          naturalHeight: 0,
+          naturalWidth: 0,
+          intersectionRect: null,
           element: root,
           entryType: "container-element",
           renderTime: resolvedRootData.renderTime,

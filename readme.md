@@ -21,15 +21,20 @@ const myObserver = new PerformanceObserver((list) => {
   list.getEntries().forEach((entry) => {
     console.log(entry);
     /**
-      "duration": 0,
-      "element": div.container,
-      "entryType": "container-element",
-      "renderTime": 49.5,
-      "startTime": 49.5,
-      "id": "",
-      "identifier": "",
-      "lastPaintedSubElement": div.cell,
-      "url": ''
+{
+    "duration": 0,
+    "naturalHeight": 0,
+    "naturalWidth": 0,
+    "intersectionRect": null,
+    "element": {},
+    "entryType": "container-element",
+    "renderTime": 45.5,
+    "url": "",
+    "name": "text-paint",
+    "identifier": "",
+    "lastPaintedSubElement": {},
+    "startTime": 45.5
+}
     **/
   });
 });
@@ -63,6 +68,7 @@ You can open the HTML of each example and look in the dev tools console to see w
 - [Table Example](./examples/table/table.html)
 - [DOM Updates Example](./examples/adding-content/index.html)
 - [Shadow DOM](./examples/shadow-dom/index.html)
+- [SVG](./examples/svg/index.html)
 
 ## FAQs
 
