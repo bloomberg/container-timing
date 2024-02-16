@@ -31,6 +31,9 @@ class ContainerPerformanceObserver {
   /** @type {boolean} */
   override;
 
+  /** @type {boolean} */
+  debug;
+
   constructor(callback) {
     this.nativePerformanceObserver = new nativePerformanceObserver(
       this.callbackWrapper.bind(this)
@@ -42,6 +45,7 @@ class ContainerPerformanceObserver {
     );
     // If this polyfill is being used we can assume we're actively overriding PerformanceObserver
     this.override = true;
+    this.debug = globalThis.ctDebug;
   }
 
   static walkDescendants(elm, callback) {
@@ -141,6 +145,13 @@ class ContainerPerformanceObserver {
   callbackWrapper(list) {
     // Have any containers been updated?
     const containerRootUpdates = new Set();
+    // Calculate the smallest rectangle that contains a union of all nodes which were painted in this container
+    // Keep track of the smallest/largest painted rectangles as we go through them in filterEnt
+    let minX = Number.MAX_SAFE_INTEGER;
+    let minY = Number.MAX_SAFE_INTEGER;
+    let maxX = Number.MIN_SAFE_INTEGER;
+    let maxY = Number.MIN_SAFE_INTEGER;
+
     // Check list for element timing entries, we don't care about other event type
     // Also if we're not actively observing element timing (override) don't bother augmenting
     if (
@@ -159,12 +170,30 @@ class ContainerPerformanceObserver {
         resolvedRootData &&
         element.getAttribute("elementtiming") === INTERNAL_ATTR_NAME
       ) {
+        minX = Math.min(minX, entry.intersectionRect.left);
+        minY = Math.min(minY, entry.intersectionRect.top);
+        maxX = Math.max(maxX, entry.intersectionRect.right);
+        maxY = Math.max(maxY, entry.intersectionRect.bottom);
+        const width = maxX - minX;
+        const height = maxY - minY;
+
         // This is an elementtiming we added rather than one which was there initially, remove it and grab the data
         resolvedRootData.name = entry.name;
         resolvedRootData.url = entry.url;
         resolvedRootData.renderTime = entry.renderTime;
         resolvedRootData.lastPaintedSubElement = entry.element;
         resolvedRootData.startTime ??= entry.startTime;
+        resolvedRootData.intersectionRect = {
+          x: minX,
+          y: minY,
+          width: width,
+          height: height,
+          top: minY,
+          right: maxX,
+          bottom: maxY,
+          left: minX,
+        };
+        resolvedRootData.size = width * height;
 
         // Because we've updated a container we should mark it as updated so we can return it with the list
         containerRootUpdates.add(closetRoot);
@@ -189,7 +218,8 @@ class ContainerPerformanceObserver {
           duration: 0,
           naturalHeight: 0,
           naturalWidth: 0,
-          intersectionRect: null,
+          intersectionRect: resolvedRootData.intersectionRect,
+          size: resolvedRootData.size,
           element: root,
           entryType: "container-element",
           renderTime: resolvedRootData.renderTime,
@@ -199,7 +229,24 @@ class ContainerPerformanceObserver {
           lastPaintedSubElement: resolvedRootData.lastPaintedSubElement,
           startTime: resolvedRootData.startTime,
         });
+
+        if (this.debug) {
+          const div = document.createElement("div");
+          div.style.backgroundColor = "#00800078";
+          div.style.width = `${resolvedRootData.intersectionRect.width}px`;
+          div.style.height = `${resolvedRootData.intersectionRect.height}px`;
+          div.style.top = `${resolvedRootData.intersectionRect.top}px`;
+          div.style.left = `${resolvedRootData.intersectionRect.left}px`;
+          div.style.position = "fixed";
+          div.style.transition = "background-color 1s";
+          document.body.appendChild(div);
+          setTimeout(() => {
+            div.style.backgroundColor = "transparent";
+          }, 1000);
+        }
       });
+
+      // if in debug mode, show the painted rectangle
 
       return containerEntries;
     };

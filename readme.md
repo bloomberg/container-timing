@@ -56,7 +56,8 @@ Entries are similar to the [interface](https://developer.mozilla.org/en-US/docs/
 - `name` - Returns `image-paint` for images and text-paint` for text. This data will come from the most recent paint entry within this container.
 - `naturalHeight` - Always returns 0 for now as this is for image elements
 - `naturalWidth` - Always returns 0 for now as this is for image elements
-- `intersectionRect` - Currently not supported so will return `null`
+- `intersectionRect` - The smallest rectangle covering the sub elements painted
+- `size` - The size of the painted rectangle within this container returned as the area (width \* height).
 - `startTime` - Returns the start time of the first paint within this container, once this value is set it does not change, even if there are subsequent entries later on.
 - `element` - An Element representing the element we are returning information about.
 - `id` - A string which is the `id` of the element
@@ -72,6 +73,11 @@ You can open the HTML of each example and look in the dev tools console to see w
 - [DOM Updates Example](./examples/adding-content/index.html)
 - [Shadow DOM](./examples/shadow-dom/index.html)
 - [SVG](./examples/svg/index.html)
+
+## Debug Mode
+
+You can set a global `ctDebug` flag to true in order to see paint rectangles from the collection of paints when a container has updated.
+(set `window.ctDebug` or `globalThis.ctDebug` to true)
 
 ## FAQs
 
