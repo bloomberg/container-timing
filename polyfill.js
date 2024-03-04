@@ -1,13 +1,68 @@
 // We need to set the element timing attribute tag on all elements below "containertiming" before we can start observing
 // Otherwise no elements will be observed
 const INTERNAL_ATTR_NAME = "POLYFILL-ELEMENTTIMING";
-const containerTimingAttrSelector = "[elementtiming]:has(*)";
-const nativePerformanceObserver = PerformanceObserver;
+const containerTimingAttrSelector = "[containertiming]";
+const nativePerformanceObserver = window.PerformanceObserver;
+// containerRoots needs to be set before "observe" has initiated due to the fact new elements could have been injected earlier
+const containerRoots = new Map();
+
+/**
+ * @param {MutationList} mutationList
+ * @param {MutationObserver} observer
+ */
+const mutationObserverCallback = (mutationList) => {
+  const findContainers = (parentNode) => {
+    // We've found a container
+    if (parentNode.matches && parentNode.matches(containerTimingAttrSelector)) {
+      ContainerPerformanceObserver.setDescendants(parentNode);
+      containerRoots.set(parentNode, {});
+      // we don't support nested containers right now so don't bother looking for more containers
+      // TODO: How would this work if we have nested containers?
+      return;
+    }
+
+    // A node was injected into the DOM with children navigate through the children to find a container
+    if (parentNode.childNodes) {
+      [...parentNode.childNodes].forEach(findContainers);
+    }
+  };
+
+  for (const mutation of mutationList) {
+    if (mutation.type === "childList" && mutation.addedNodes.length) {
+      for (const node of mutation.addedNodes) {
+        if (node.nodeType === 3) {
+          continue;
+        }
+
+        // Theres a chance the new sub-tree injected is a descendent of a container that was already in the DOM
+        // Go through the container have currently and check..
+        if (node.closest(containerTimingAttrSelector)) {
+          // Set on the node itself
+          ContainerPerformanceObserver.setElementTiming(node);
+          // Set on the nodes children (if any)
+          ContainerPerformanceObserver.setDescendants(node);
+          continue;
+        }
+
+        // If there's no containers above, we should check for containers inside
+        findContainers(node);
+      }
+    }
+  }
+};
 
 // Wait until the DOM is ready then start collecting elements needed to be timed.
 document.addEventListener("DOMContentLoaded", () => {
+  const mutationObserver = new window.MutationObserver(
+    mutationObserverCallback
+  );
+
+  const config = { attributes: false, childList: true, subtree: true };
+  mutationObserver.observe(document, config);
+
   const elms = document.querySelectorAll(containerTimingAttrSelector);
   elms.forEach((elm) => {
+    containerRoots.set(elm, {});
     ContainerPerformanceObserver.setDescendants(elm);
   });
 });
@@ -19,14 +74,8 @@ class ContainerPerformanceObserver {
   /** @type {PerformanceObserver} */
   nativePerformanceObserver;
 
-  /** @type {Map<HTMLElement, ResolvedRoot} */
-  containerRoots;
-
   /** @type {(PerformanceObserverEntryList) => void} */
   callback;
-
-  /** @type {MutationObserver} */
-  mutationObserver;
 
   /** @type {boolean} */
   override;
@@ -39,10 +88,6 @@ class ContainerPerformanceObserver {
       this.callbackWrapper.bind(this)
     );
     this.callback = callback;
-    this.containerRoots = new Map();
-    this.mutationObserver = new MutationObserver(
-      this.mutationObserverCallback.bind(this)
-    );
     // If this polyfill is being used we can assume we're actively overriding PerformanceObserver
     this.override = true;
     this.debug = globalThis.ctDebug;
@@ -53,16 +98,28 @@ class ContainerPerformanceObserver {
     const walkChildren = ({ children }) => {
       const normalizedChildren = Array.from(children);
       normalizedChildren.forEach((child) => {
-        // If the node has children its most likely a container and won't be tracked by elementtiming
+        callback(child);
         if (child.children.length) {
           walkChildren(child);
-          return;
         }
-        // we can filter out the same nodes elementtiming would
-        callback(child);
       });
     };
+
     walkChildren(elm);
+  }
+
+  static setElementTiming(el) {
+    // We should keep track of elements which were already marked with element timing so we can still display those results
+    // Sometimes DOM Nodes with the polyfilled-elementtiming are detached then re-attached to the DOM so check for these
+    if (
+      el.hasAttribute("elementtiming") &&
+      el.attributes.getNamedItem("elementtiming").value !== INTERNAL_ATTR_NAME
+    ) {
+      el.setAttribute("initial-elementtiming-set", "true");
+      return;
+    }
+
+    el.setAttribute("elementtiming", INTERNAL_ATTR_NAME);
   }
 
   /**
@@ -70,15 +127,10 @@ class ContainerPerformanceObserver {
    * @param {HTMLElement} el
    */
   static setDescendants(el) {
-    ContainerPerformanceObserver.walkDescendants(el, (child) => {
-      if (child.hasAttribute("elementtiming")) {
-        // We should keep track of elements which were already marked with element timing so we can still display those results
-        child.setAttribute("initial-elementtiming-set", "true");
-        return;
-      }
-
-      child.setAttribute("elementtiming", INTERNAL_ATTR_NAME);
-    });
+    ContainerPerformanceObserver.walkDescendants(
+      el,
+      ContainerPerformanceObserver.setElementTiming
+    );
   }
 
   observe(options) {
@@ -92,50 +144,15 @@ class ContainerPerformanceObserver {
       return;
     }
 
-    // Locate container nodes which have "elementtiming" set
-    this.findAndSetRoots();
-
     this.nativePerformanceObserver.observe(options);
-
-    // Options for the observer (which mutations to observe)
-    const config = { attributes: false, childList: true, subtree: true };
-    this.containerRoots.forEach((_, rootElm) => {
-      this.mutationObserver.observe(rootElm, config);
-    });
   }
 
-  findAndSetRoots() {
-    const containerRoots = document.querySelectorAll(
-      containerTimingAttrSelector
-    );
-
-    containerRoots.forEach((child) => {
-      this.containerRoots.set(child, {});
-    });
+  disconnect() {
+    this.nativePerformanceObserver.disconnect();
   }
 
-  /**
-   *
-   * @param {MutationList} mutationList
-   * @param {MutationObserver} observer
-   */
-  mutationObserverCallback(mutationList, observer) {
-    for (const mutation of mutationList) {
-      if (mutation.type === "childList" && mutation.addedNodes.length) {
-        for (const node of mutation.addedNodes) {
-          if (node.nodeType === 3) {
-            continue;
-          }
-          node.setAttribute("elementtiming", INTERNAL_ATTR_NAME);
-          // get parent
-          const closestRoot = mutation.target.closest(
-            containerTimingAttrSelector
-          );
-          const rootData = this.containerRoots.get(closestRoot);
-          rootData.descendants++;
-        }
-      }
-    }
+  takeRecords() {
+    return this.nativePerformanceObserver.takeRecords();
   }
 
   /**
@@ -143,15 +160,6 @@ class ContainerPerformanceObserver {
    * @param {PerformanceObserverEntryList} list
    */
   callbackWrapper(list) {
-    // Have any containers been updated?
-    const containerRootUpdates = new Set();
-    // Calculate the smallest rectangle that contains a union of all nodes which were painted in this container
-    // Keep track of the smallest/largest painted rectangles as we go through them in filterEnt
-    let minX = Number.MAX_SAFE_INTEGER;
-    let minY = Number.MAX_SAFE_INTEGER;
-    let maxX = Number.MIN_SAFE_INTEGER;
-    let maxY = Number.MIN_SAFE_INTEGER;
-
     // Check list for element timing entries, we don't care about other event type
     // Also if we're not actively observing element timing (override) don't bother augmenting
     if (
@@ -162,14 +170,24 @@ class ContainerPerformanceObserver {
       return;
     }
 
+    // Have any containers been updated?
+    const containerRootUpdates = new Set();
+    // Calculate the smallest rectangle that contains a union of all nodes which were painted in this container
+    // Keep track of the smallest/largest painted rectangles as we go through them in filterEnt
+    let minX = Number.MAX_SAFE_INTEGER;
+    let minY = Number.MAX_SAFE_INTEGER;
+    let maxX = Number.MIN_SAFE_INTEGER;
+    let maxY = Number.MIN_SAFE_INTEGER;
+
     const filterEntries = (entry) => {
       const element = entry.element;
+      if (!element) {
+        return false;
+      }
+
       const closetRoot = element.closest(containerTimingAttrSelector);
-      const resolvedRootData = this.containerRoots.get(closetRoot);
-      if (
-        resolvedRootData &&
-        element.getAttribute("elementtiming") === INTERNAL_ATTR_NAME
-      ) {
+      const resolvedRootData = containerRoots.get(closetRoot);
+      if (element.getAttribute("elementtiming") === INTERNAL_ATTR_NAME) {
         minX = Math.min(minX, entry.intersectionRect.left);
         minY = Math.min(minY, entry.intersectionRect.top);
         maxX = Math.max(maxX, entry.intersectionRect.right);
@@ -213,7 +231,7 @@ class ContainerPerformanceObserver {
       const containerEntries = [];
       // If any of these updates happened in a container, add the container to the end of the list
       containerRootUpdates.forEach((root) => {
-        const resolvedRootData = this.containerRoots.get(root);
+        const resolvedRootData = containerRoots.get(root);
         containerEntries.push({
           duration: 0,
           naturalHeight: 0,
@@ -243,6 +261,9 @@ class ContainerPerformanceObserver {
           setTimeout(() => {
             div.style.backgroundColor = "transparent";
           }, 1000);
+          setTimeout(() => {
+            div.remove();
+          }, 2000);
         }
       });
 
