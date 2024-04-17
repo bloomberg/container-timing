@@ -98,7 +98,7 @@ Due to some applications loading containers before the contents within that cont
 </div>
 ```
 
-the polyfill won't be able to identify these. So instead it may make sense to have a separate attribute to aid in finding containers, for now I will call this `containertiming`. The developer can mark containers which should have timing with this attribute instead of elementtiming.
+the polyfill won't be able to identify these. So instead it may make sense to have a separate attribute to aid in finding containers, for now I will call this `containertiming`. The developer can mark containers which should have timing with this attribute instead of `elementtiming`.
 
 ### Recursive iteration of new DOM elements is needed
 
