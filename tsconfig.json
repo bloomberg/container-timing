@@ -8,5 +8,5 @@
     "skipLibCheck": true /* Skip type checking all .d.ts files. */,
     "lib": ["DOM", "ES2023"]
   },
-  "files": ["./polyfill2.ts"]
+  "files": ["./polyfill.ts"]
 }

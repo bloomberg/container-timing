@@ -17,7 +17,9 @@ interface PerformanceElementTiming extends PerformanceEntry {
   size: number;
 }
 
-interface PerformanceContainerTiming extends PerformanceElementTiming {}
+interface PerformanceContainerTiming extends PerformanceElementTiming {
+  paintedRects?: DOMRectReadOnly[];
+}
 type ResolvedRootData = PerformanceContainerTiming;
 
 // We need to set the element timing attribute tag on all elements below "containertiming" before we can start observing
@@ -28,11 +30,12 @@ const nativePerformanceObserver = window.PerformanceObserver;
 // containerRoots needs to be set before "observe" has initiated due to the fact new elements could have been injected earlier
 const containerRoots = new Set<Element>();
 const containerRootDataMap = new Map<Element, PerformanceContainerTiming>();
+// This state is only kept during the length of this callback, it is reset between each callback.
+// Not to be confused with containerRootDataMap which keeps state as long as the container is alive.
+const perCallbackContainerState = new Map<Element, any>(); // Have any containers been updated? keep track
+// Keep track of containers that need updating (sub elements have painted), this is reset between observer callbacks
+const containerRootUpdates = new Set<Element>();
 
-/**
- * @param {MutationList} mutationList
- * @param {MutationObserver} observer
- */
 const mutationObserverCallback = (mutationList: MutationRecord[]) => {
   const findContainers = (parentNode: Element) => {
     // We've found a container
@@ -101,9 +104,13 @@ class ContainerPerformanceObserver {
   callback: PerformanceObserverCallback;
   override: boolean;
   debug: boolean;
+  method: string;
   static supportedEntryTypes = nativePerformanceObserver.supportedEntryTypes;
 
-  constructor(callback: PerformanceObserverCallback) {
+  constructor(
+    callback: PerformanceObserverCallback,
+    method: "accumulatedSubPaints" | "newAreaPainted" = "accumulatedSubPaints",
+  ) {
     this.nativePerformanceObserver = new nativePerformanceObserver(
       this.callbackWrapper.bind(this),
     );
@@ -111,6 +118,7 @@ class ContainerPerformanceObserver {
     // If this polyfill is being used we can assume we're actively overriding PerformanceObserver
     this.override = true;
     this.debug = (window as any).ctDebug;
+    this.method = method;
   }
 
   static walkDescendants(elm: Element, callback: (elm: Element) => void) {
@@ -151,6 +159,43 @@ class ContainerPerformanceObserver {
     );
   }
 
+  static paintDebugOverlay(rectData: DOMRectReadOnly | Set<DOMRectReadOnly>) {
+    const divCol: Set<Element> = new Set();
+    const addOverlayToRect = (rectData: DOMRectReadOnly) => {
+      const div = document.createElement("div");
+      div.classList.add("polyfill--ctDebugOverlay");
+      div.style.backgroundColor = "#00800078";
+      div.style.width = `${rectData.width}px`;
+      div.style.height = `${rectData.height}px`;
+      div.style.top = `${rectData.top}px`;
+      div.style.left = `${rectData.left}px`;
+      div.style.position = "fixed";
+      div.style.transition = "background-color 1s";
+      document.body.appendChild(div);
+      divCol.add(div);
+    };
+
+    if (rectData instanceof Set) {
+      rectData?.forEach((rect) => {
+        addOverlayToRect(rect);
+      });
+    } else {
+      addOverlayToRect(rectData);
+    }
+
+    setTimeout(() => {
+      divCol.forEach((div) => {
+        (div as HTMLDivElement).style.backgroundColor = "transparent";
+      });
+    }, 1000);
+
+    setTimeout(() => {
+      divCol.forEach((div) => {
+        div.remove();
+      });
+    }, 2000);
+  }
+
   observe(options: PerformanceObserverInit) {
     // If we're not observing element timing we should just "pass through" to the normal PerformanceObserver
     if (
@@ -174,6 +219,95 @@ class ContainerPerformanceObserver {
   }
 
   /**
+   *  This algorithm collects the paints which have happened within the nearest container and emits the largest rectangle
+   *  that is the union of all painted elements. Due to the nature of the underlying `element-timing` algorithm only new areas
+   *  should be painted unless the DOM elements have been swapped out in various positions.
+   */
+  accumulatedSubPaints(entry: PerformanceElementTiming, closestRoot: Element) {
+    const coordData: any = perCallbackContainerState.get(closestRoot) ?? {
+      // Calculate the smallest rectangle that contains a union of all nodes which were painted in this container
+      // Keep track of the smallest/largest painted rectangles as we go through them in filterEnt
+      minX: Number.MAX_SAFE_INTEGER,
+      minY: Number.MAX_SAFE_INTEGER,
+      maxX: Number.MIN_SAFE_INTEGER,
+      maxY: Number.MIN_SAFE_INTEGER,
+    };
+    const resolvedRootData: any = containerRootDataMap.get(closestRoot) ?? {};
+    coordData.minX = Math.min(coordData.minX, entry.intersectionRect.left);
+    coordData.minY = Math.min(coordData.minY, entry.intersectionRect.top);
+    coordData.maxX = Math.max(coordData.maxX, entry.intersectionRect.right);
+    coordData.maxY = Math.max(coordData.maxY, entry.intersectionRect.bottom);
+    const width = coordData.maxX - coordData.minX;
+    const height = coordData.maxY - coordData.minY;
+
+    // This is an elementtiming we added rather than one which was there initially, remove it and grab the data
+    resolvedRootData.name = entry.name;
+    resolvedRootData.url = entry.url;
+    resolvedRootData.renderTime = entry.renderTime;
+    resolvedRootData.lastPaintedSubElement = entry.element;
+    resolvedRootData.startTime ??= entry.startTime;
+    resolvedRootData.intersectionRect = new DOMRectReadOnly(
+      coordData.minX,
+      coordData.minY,
+      width,
+      height,
+    );
+    resolvedRootData.size = width * height;
+    containerRootDataMap.set(closestRoot, resolvedRootData);
+    perCallbackContainerState.set(closestRoot, coordData);
+
+    // Because we've updated a container we should mark it as updated so we can return it with the list
+    containerRootUpdates.add(closestRoot);
+  }
+
+  /**
+   *  This algorithm retains the coordinates that have been painted previously and emits only new rectangles that have
+   *  been painted. This requires having some state to know which areas have already been covered, so we need to keep hold
+   *  of painted rects.
+   */
+  emitNewAreaPainted(entry: PerformanceElementTiming, closestRoot: Element) {
+    const paintedRecsInCallback: any =
+      perCallbackContainerState.get(closestRoot) ?? new Set();
+    const resolvedRootData: any = containerRootDataMap.get(closestRoot) ?? {
+      paintedRects: [],
+    };
+
+    // Check if we have new rectangles or are just painting over old areas
+    const newRect = entry.intersectionRect;
+    if (
+      !resolvedRootData.paintedRects.some((rect: DOMRectReadOnly) =>
+        this.overlaps(rect, newRect),
+      )
+    ) {
+      console.log("new paint!");
+      resolvedRootData.paintedRects.push(newRect);
+      paintedRecsInCallback.add(newRect);
+    }
+
+    // This is an elementtiming we added rather than one which was there initially, remove it and grab the data
+    resolvedRootData.name = entry.name;
+    resolvedRootData.url = entry.url;
+    resolvedRootData.renderTime = entry.renderTime;
+    resolvedRootData.lastPaintedSubElement = entry.element;
+    resolvedRootData.startTime ??= entry.startTime;
+    resolvedRootData.intersectionRect = entry.intersectionRect;
+
+    // Update States
+    perCallbackContainerState.set(closestRoot, paintedRecsInCallback);
+    containerRootDataMap.set(closestRoot, resolvedRootData);
+    containerRootUpdates.add(closestRoot);
+  }
+
+  overlaps(rectA: DOMRectReadOnly, rectB: DOMRectReadOnly): boolean {
+    return !(
+      rectB.left > rectA.right ||
+      rectB.right < rectA.left ||
+      rectB.top > rectA.bottom ||
+      rectB.bottom < rectA.top
+    );
+  }
+
+  /**
    * This will wrap the callback and add extra fields for container elements
    * @param {PerformanceObserverEntryList} list
    */
@@ -188,19 +322,16 @@ class ContainerPerformanceObserver {
       return;
     }
 
-    // Have any containers been updated? keep track
-    const containerRootUpdates = new Set<Element>();
+    // Have any containers been updated?
+    containerRootUpdates.clear();
 
-    // Calculate the smallest rectangle that contains a union of all nodes which were painted in this container
-    // Keep track of the smallest/largest painted rectangles as we go through them in filterEnt
-    // TODO: This data needs to be moved under container scope as this wouldn't work if we had multiple containers
-    let minX = Number.MAX_SAFE_INTEGER;
-    let minY = Number.MAX_SAFE_INTEGER;
-    let maxX = Number.MIN_SAFE_INTEGER;
-    let maxY = Number.MIN_SAFE_INTEGER;
+    // Reset state between each callback, this is needed by the `emitLargestSubPaint` strategy
+    perCallbackContainerState.clear();
 
     // Strip elements from the final list that we've added via the polyfill as not to pollute the final set of results.
     const filterEntries = (entry: PerformanceEntry) => {
+      // This should ensure we're dealing with a PerformanceElementTiming instance
+      // We can't use instanceOf here as the class doesn't exist at the time of writing
       if (entry.entryType !== "element") {
         return true;
       }
@@ -216,31 +347,17 @@ class ContainerPerformanceObserver {
         element.getAttribute("elementtiming") === INTERNAL_ATTR_NAME &&
         closestRoot
       ) {
-        minX = Math.min(minX, entryElmTiming.intersectionRect.left);
-        minY = Math.min(minY, entryElmTiming.intersectionRect.top);
-        maxX = Math.max(maxX, entryElmTiming.intersectionRect.right);
-        maxY = Math.max(maxY, entryElmTiming.intersectionRect.bottom);
-        const width = maxX - minX;
-        const height = maxY - minY;
-        const resolvedRootData: any = {};
-
-        // This is an elementtiming we added rather than one which was there initially, remove it and grab the data
-        resolvedRootData.name = entryElmTiming.name;
-        resolvedRootData.url = entryElmTiming.url;
-        resolvedRootData.renderTime = entryElmTiming.renderTime;
-        resolvedRootData.lastPaintedSubElement = entryElmTiming.element;
-        resolvedRootData.startTime ??= entryElmTiming.startTime;
-        resolvedRootData.intersectionRect = new DOMRectReadOnly(
-          minX,
-          minY,
-          width,
-          height,
-        );
-        resolvedRootData.size = width * height;
-        containerRootDataMap.set(closestRoot, resolvedRootData);
-
-        // Because we've updated a container we should mark it as updated so we can return it with the list
-        containerRootUpdates.add(closestRoot);
+        if (this.method === "accumulatedSubPaints") {
+          this.accumulatedSubPaints(
+            entry as PerformanceElementTiming,
+            closestRoot,
+          );
+        } else {
+          this.emitNewAreaPainted(
+            entry as PerformanceElementTiming,
+            closestRoot,
+          );
+        }
 
         // If elementtiming was explicitly set, we should preserve this entry as the developer wanted this information
         if (element.getAttribute("initial-elementtiming-set")) {
@@ -282,25 +399,17 @@ class ContainerPerformanceObserver {
         });
 
         if (this.debug) {
-          const div = document.createElement("div");
-          div.style.backgroundColor = "#00800078";
-          div.style.width = `${resolvedRootData.intersectionRect.width}px`;
-          div.style.height = `${resolvedRootData.intersectionRect.height}px`;
-          div.style.top = `${resolvedRootData.intersectionRect.top}px`;
-          div.style.left = `${resolvedRootData.intersectionRect.left}px`;
-          div.style.position = "fixed";
-          div.style.transition = "background-color 1s";
-          document.body.appendChild(div);
-          setTimeout(() => {
-            div.style.backgroundColor = "transparent";
-          }, 1000);
-          setTimeout(() => {
-            div.remove();
-          }, 2000);
+          if (this.method === "newAreaPainted") {
+            const rects = perCallbackContainerState.get(root);
+            console.log(rects);
+            ContainerPerformanceObserver.paintDebugOverlay(rects);
+          }
+          // debug mode shows the painted rectangles
+          ContainerPerformanceObserver.paintDebugOverlay(
+            resolvedRootData.intersectionRect,
+          );
         }
       });
-
-      // if in debug mode, show the painted rectangle
 
       return containerEntries;
     };
@@ -318,7 +427,7 @@ class ContainerPerformanceObserver {
           .filter(filterEntries)
           .concat(concatContainersIfNeeded());
       },
-      getEntriesByName: (name: string, type?: string) => {
+      getEntriesByName: (name: string) => {
         return list
           .getEntriesByName(name)
           .filter(filterEntries)
