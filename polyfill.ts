@@ -18,9 +18,10 @@ interface PerformanceElementTiming extends PerformanceEntry {
 }
 
 interface PerformanceContainerTiming extends PerformanceElementTiming {
-  paintedRects?: DOMRectReadOnly[];
+  paintedRects: Set<DOMRectReadOnly>;
 }
 type ResolvedRootData = PerformanceContainerTiming;
+(window as any).rectsPainted = [];
 
 // We need to set the element timing attribute tag on all elements below "containertiming" before we can start observing
 // Otherwise no elements will be observed
@@ -159,6 +160,32 @@ class ContainerPerformanceObserver {
     );
   }
 
+  static getResolvedDataFromContainerRoot(
+    container: Element,
+  ): ResolvedRootData {
+    const resolvedRootData: ResolvedRootData = containerRootDataMap.get(
+      container,
+    ) ?? {
+      paintedRects: new Set(),
+      name: "",
+      duration: 0,
+      element: null,
+      entryType: "",
+      identifier: "",
+      intersectionRect: new DOMRectReadOnly(),
+      lastPaintedSubElement: null,
+      naturalHeight: 0,
+      naturalWidth: 0,
+      renderTime: 0,
+      size: 0,
+      startTime: 0,
+      toJSON: () => {},
+      url: "",
+    };
+
+    return resolvedRootData;
+  }
+
   static paintDebugOverlay(rectData: DOMRectReadOnly | Set<DOMRectReadOnly>) {
     const divCol: Set<Element> = new Set();
     const addOverlayToRect = (rectData: DOMRectReadOnly) => {
@@ -232,7 +259,10 @@ class ContainerPerformanceObserver {
       maxX: Number.MIN_SAFE_INTEGER,
       maxY: Number.MIN_SAFE_INTEGER,
     };
-    const resolvedRootData: any = containerRootDataMap.get(closestRoot) ?? {};
+    const resolvedRootData =
+      ContainerPerformanceObserver.getResolvedDataFromContainerRoot(
+        closestRoot,
+      );
     coordData.minX = Math.min(coordData.minX, entry.intersectionRect.left);
     coordData.minY = Math.min(coordData.minY, entry.intersectionRect.top);
     coordData.maxX = Math.max(coordData.maxX, entry.intersectionRect.right);
@@ -268,21 +298,45 @@ class ContainerPerformanceObserver {
   emitNewAreaPainted(entry: PerformanceElementTiming, closestRoot: Element) {
     const paintedRecsInCallback: any =
       perCallbackContainerState.get(closestRoot) ?? new Set();
-    const resolvedRootData: any = containerRootDataMap.get(closestRoot) ?? {
-      paintedRects: [],
+    const resolvedRootData =
+      ContainerPerformanceObserver.getResolvedDataFromContainerRoot(
+        closestRoot,
+      );
+
+    const mergeRects = (
+      rectA: DOMRectReadOnly,
+      rectB: DOMRectReadOnly,
+    ): DOMRectReadOnly => {
+      const minX = Math.min(rectA.left, rectB.left);
+      const maxX = Math.max(rectA.right, rectB.right);
+      const minY = Math.min(rectA.top, rectB.top);
+      const maxY = Math.max(rectA.bottom, rectB.bottom);
+      return new DOMRectReadOnly(minX, minY, maxX - minX, maxY - minY);
+    };
+
+    const canMerge = (rectA: DOMRectReadOnly, rectB: DOMRectReadOnly) => {
+      // Proximity tolerance
+      const pt = 20;
+      // We already throw away overlapping rectangles (TODO we may want to merge overlaps too)
+      // We should merge rectangles which are within proximity so we have a "painted area".
+      const horizontalMerge =
+        rectA.bottom >= rectB.top - pt &&
+        rectA.top <= rectB.bottom + pt &&
+        (Math.abs(rectA.right - rectB.left) <= pt ||
+          Math.abs(rectA.left - rectB.right) <= pt);
+
+      const verticalMerge =
+        rectA.right >= rectB.left - pt &&
+        rectA.left <= rectB.right + pt &&
+        (Math.abs(rectA.bottom - rectB.top) <= pt ||
+          Math.abs(rectA.top - rectB.bottom) <= pt);
+
+      return horizontalMerge || verticalMerge;
     };
 
     // Check if we have new rectangles or are just painting over old areas
-    const newRect = entry.intersectionRect;
-    if (
-      !resolvedRootData.paintedRects.some((rect: DOMRectReadOnly) =>
-        this.overlaps(rect, newRect),
-      )
-    ) {
-      console.log("new paint!");
-      resolvedRootData.paintedRects.push(newRect);
-      paintedRecsInCallback.add(newRect);
-    }
+    let entryRect = entry.intersectionRect;
+    resolvedRootData.paintedRects?.add(entryRect);
 
     // This is an elementtiming we added rather than one which was there initially, remove it and grab the data
     resolvedRootData.name = entry.name;
@@ -396,12 +450,12 @@ class ContainerPerformanceObserver {
           lastPaintedSubElement: resolvedRootData.lastPaintedSubElement,
           startTime: resolvedRootData.startTime,
           toJSON: () => JSON.stringify(this),
+          paintedRects: resolvedRootData.paintedRects,
         });
 
         if (this.debug) {
           if (this.method === "newAreaPainted") {
-            const rects = perCallbackContainerState.get(root);
-            console.log(rects);
+            const rects = resolvedRootData.paintedRects;
             ContainerPerformanceObserver.paintDebugOverlay(rects);
           }
           // debug mode shows the painted rectangles
