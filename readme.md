@@ -62,7 +62,7 @@ Entries are similar to the [interface](https://developer.mozilla.org/en-US/docs/
 
 - `duration` - Always returns 0 as duration does not apply to this interface.
 - `entryType` - `container-element` for entries which happen on container elements
-- `name` - Returns `image-paint` for images and text-paint` for text. This data will come from the most recent paint entry within this container.
+- `name` - Returns `image-paint` for images and `text-paint` for text. This data will come from the most recent paint entry within this container.
 - `naturalHeight` - Always returns 0 for now as this is for image elements
 - `naturalWidth` - Always returns 0 for now as this is for image elements
 - `intersectionRect` - The smallest rectangle covering the sub elements painted
@@ -106,22 +106,25 @@ If a subtree is injected into the DOM along with child elements, those child ele
 
 In order to alleviate this issue we need to recourse through every child of every new DOM Node inserted.
 
-## FAQs ### Should the user know how much has painted? When we get paint events
+## FAQs
 
-for a container its difficult to know if its fully rendered or not. In our
+### Should the user know how much has painted?
+When we get paint events for a container its difficult to know if its fully rendered or not. In our
 polyfill we will fire multiple times for each new paint happening in a
-container. Just like LCP developers can choose the most recent candidate as
+container.
+
+Just like LCP developers can choose the most recent candidate as
 their paint time. That being said, this polyfill does provide a
 "lastPaintedElement" field which lets developers track which element caused the
-last paint update. ### Should we stop observing on interaction? Due to the
-nature of containers having multiple events (unlike single element), we may want
+last paint update.
+
+### Should we stop observing on interaction?
+Due to the nature of containers having multiple events (unlike single element), we may want
 to stop observing once there's interaction so we have the concept of a "final
 candidate". This would let developers know the renderTime of the last paint
-after the page has loaded. ### Should this polyfill support additional elements?
+after the page has loaded.
+
+### Should this polyfill support additional elements?
 There will be new performance entries when there's DOM mutation happening within
 a container, such as addition of new children. The observer currently fires new
 entries when this happens if they have caused new paint events.
-
-```
-
-```
