@@ -61,7 +61,6 @@ With each Chromium build I will:
 - Open the performance panel in developer tools
 - reload the page and start to record a profile.
 - I will then wait 5 seconds or until the profiling is deemed finished (whichever one happens first)
-- I will collect some user-visible indicators such as FCP and LCP
 - I will then go over to the Memory tab, run garbage collection then take a snapshot from there
 - For memory I will collect the shallow size of PerformanceElementTiming elements, how many objects there are and the total size.
 - Each run will leave me with a memory snapshot and a performance snapshot.
@@ -69,14 +68,6 @@ With each Chromium build I will:
 ## Results
 
 ### uk.yahoo.com
-
-| Performance |          |          |                  |                  |
-| ----------- | -------- | -------- | ---------------- | ---------------- |
-| Run         | LCP (ms) | FCP (ms) | LCP patched (ms) | FCP patched (ms) |
-| 1           | 676.00   | 676.00   | 865.68           | 865.68           |
-| 2           | 981.90   | 1007     | 918.16           | 918.16           |
-| 3           | 955.31   | 838.59   | 843.57           | 843.57           |
-| Avg         | 871.07   | 840.53   | 875.80           | 875.80           |
 
 | Memory |                         |                                |                 |                               |                                      |                       |
 | ------ | ----------------------- | ------------------------------ | --------------- | ----------------------------- | ------------------------------------ | --------------------- |
@@ -88,14 +79,6 @@ With each Chromium build I will:
 
 ### en.wikipedia.org
 
-| Performance |          |          |                  |                  |
-| ----------- | -------- | -------- | ---------------- | ---------------- |
-| Run         | LCP (ms) | FCP (ms) | LCP patched (ms) | FCP patched (ms) |
-| 1           | 828.29   | 828.29   | 285.94           | 235.93           |
-| 2           | 343.25   | 343.25   | 372.38           | 372.38           |
-| 3           | 339.49   | 233.01   | 321.87           | 321.87           |
-| Avg         | 503.68   | 468.18   | 326.73           | 310.06           |
-
 | Memory |                         |                                |                 |                               |                                      |                       |
 | ------ | ----------------------- | ------------------------------ | --------------- | ----------------------------- | ------------------------------------ | --------------------- |
 | Run    | No. PerfElemTiming Objs | Size. PerfElemTiming Objs (KB) | Total Size (MB) | No. PerfElemTiming Objs patch | Size. PerfElemTiming Objs (KB) patch | Total Size (MB) patch |
@@ -105,14 +88,6 @@ With each Chromium build I will:
 | Avg    | 0.00                    | 0.00                           | 5.70            | 75.00                         | 9.60                                 | 5.70                  |
 
 ### bbc.co.uk/news
-
-| Performance |          |          |                  |                  |
-| ----------- | -------- | -------- | ---------------- | ---------------- |
-| Run         | LCP (ms) | FCP (ms) | LCP patched (ms) | FCP patched (ms) |
-| 1           | 235.80   | 235.80   | 240.75           | 240.75           |
-| 2           | 244.33   | 244.33   | 538.21           | 421.82           |
-| 3           | 235.16   | 235.16   | 230.39           | 230.39           |
-| Avg         | 238.43   | 238.43   | 336.45           | 297.65           |
 
 | Memory |                         |                                |                 |                               |                                      |                       |
 | ------ | ----------------------- | ------------------------------ | --------------- | ----------------------------- | ------------------------------------ | --------------------- |
@@ -159,13 +134,14 @@ We will also keep an eye on the [TodoMVC React Complex DOM](https://github.com/W
 
 ## Conclusion
 
-For page loads the performance results vary more than the memory results, this is expected. Any variance in the network will cause numbers to skew, but memory would still be the same, for this reason I've focused more on memory than I have performance.
+For page loads the performance results vary more than the memory results, this is expected. Any variance in the network or cache misses will cause numbers to skew, but memory would still be the same, so for the manual testing I have observed memory changes.
+For performance I've used Speedometer 3.0, this does most of its testing offline and doesn't take into account any network calls so test results should be more consistent regardless of latency or cache-misses.
 
 Looking at the memory profiles from each run we can see their is very little impact, wikipedia for example which is fairly static has no change in total size, and an increase in 9.6kb.
 
-For speedometer tests we see a bit more consistency between the two builds, the patched build is slower by less than a millisecond averaged across 3 tests and the score is also lower so this is expected but by a small fraction, this is expected as there will still be overhead generating and storing the PerformanceElementTiming objects.
+For speedometer tests we see the patched build is slower by less than a millisecond averaged across 3 tests and the score is also lower so this is expected but by a small fraction, this is expected as there will still be overhead generating and storing the PerformanceElementTiming objects.
 
-The reason for little impact is because of the [implicit registration](https://github.com/w3ctag/design-reviews/issues/326#issuecomment-494947186) these elements need to go through regardless of whether they're tagged or not. If the text or image element is within the viewport it will be registered for instrumentation ahead of time because of PerformanceObserver buffered results. The only difference the attribute makes is the observability from the Performance object.
+Overall we can see fairly low impact when observing all text and image elements within the viewport. The main reason being the [implicit registration](https://github.com/w3ctag/design-reviews/issues/326#issuecomment-494947186) of these elements on page load regardless of whether they're tagged or not, this is because of PerformanceObserver's buffered results. The only difference the attribute makes is the observability from the Performance object.
 
 ### Performance Element Timing objects are retained
 
