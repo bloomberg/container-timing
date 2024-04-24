@@ -100,6 +100,10 @@ Due to some applications loading containers before the contents within that cont
 
 the polyfill won't be able to identify these. So instead it may make sense to have a separate attribute to aid in finding containers, for now I will call this `containertiming`. The developer can mark containers which should have timing with this attribute instead of `elementtiming`.
 
+## Performance Impact of a native implementation
+
+See [Performance Impact](./performance-impact.md)
+
 ### Recursive iteration of new DOM elements is needed
 
 If a subtree is injected into the DOM along with child elements, those child elements [won't be picked up](https://stackoverflow.com/questions/61314922/mutationobserver-not-picking-up-on-child-nodes) by the mutationObserver. This means we can miss out on new containers being injected if we don't recurse through each new entry.
