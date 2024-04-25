@@ -19,6 +19,8 @@ interface PerformanceElementTiming extends PerformanceEntry {
 
 interface PerformanceContainerTiming extends PerformanceElementTiming {
   paintedRects: Set<DOMRectReadOnly>;
+  tempPaintedRects?: Set<DOMRectReadOnly>;
+  coordData?: any;
 }
 type ResolvedRootData = PerformanceContainerTiming;
 (window as any).rectsPainted = [];
@@ -31,9 +33,6 @@ const nativePerformanceObserver = window.PerformanceObserver;
 // containerRoots needs to be set before "observe" has initiated due to the fact new elements could have been injected earlier
 const containerRoots = new Set<Element>();
 const containerRootDataMap = new Map<Element, PerformanceContainerTiming>();
-// This state is only kept during the length of this callback, it is reset between each callback.
-// Not to be confused with containerRootDataMap which keeps state as long as the container is alive.
-const perCallbackContainerState = new Map<Element, any>(); // Have any containers been updated? keep track
 // Keep track of containers that need updating (sub elements have painted), this is reset between observer callbacks
 const containerRootUpdates = new Set<Element>();
 
@@ -110,8 +109,9 @@ class ContainerPerformanceObserver {
 
   constructor(
     callback: PerformanceObserverCallback,
-    method: "accumulatedSubPaints" | "newAreaPainted" = "accumulatedSubPaints",
+    method: "aggregatedPaints" | "newAreaPainted" = "aggregatedPaints",
   ) {
+    console.log(method);
     this.nativePerformanceObserver = new nativePerformanceObserver(
       this.callbackWrapper.bind(this),
     );
@@ -204,6 +204,7 @@ class ContainerPerformanceObserver {
 
     if (rectData instanceof Set) {
       rectData?.forEach((rect) => {
+        console.log(rect);
         addOverlayToRect(rect);
       });
     } else {
@@ -216,11 +217,11 @@ class ContainerPerformanceObserver {
       });
     }, 1000);
 
-    setTimeout(() => {
-      divCol.forEach((div) => {
-        div.remove();
-      });
-    }, 2000);
+    // setTimeout(() => {
+    //   divCol.forEach((div) => {
+    //     div.remove();
+    //   });
+    // }, 2000);
   }
 
   observe(options: PerformanceObserverInit) {
@@ -250,8 +251,12 @@ class ContainerPerformanceObserver {
    *  that is the union of all painted elements. Due to the nature of the underlying `element-timing` algorithm only new areas
    *  should be painted unless the DOM elements have been swapped out in various positions.
    */
-  accumulatedSubPaints(entry: PerformanceElementTiming, closestRoot: Element) {
-    const coordData: any = perCallbackContainerState.get(closestRoot) ?? {
+  aggregatedPaints(entry: PerformanceElementTiming, closestRoot: Element) {
+    const resolvedRootData =
+      ContainerPerformanceObserver.getResolvedDataFromContainerRoot(
+        closestRoot,
+      );
+    const coordData = resolvedRootData.coordData ?? {
       // Calculate the smallest rectangle that contains a union of all nodes which were painted in this container
       // Keep track of the smallest/largest painted rectangles as we go through them in filterEnt
       minX: Number.MAX_SAFE_INTEGER,
@@ -259,10 +264,6 @@ class ContainerPerformanceObserver {
       maxX: Number.MIN_SAFE_INTEGER,
       maxY: Number.MIN_SAFE_INTEGER,
     };
-    const resolvedRootData =
-      ContainerPerformanceObserver.getResolvedDataFromContainerRoot(
-        closestRoot,
-      );
     coordData.minX = Math.min(coordData.minX, entry.intersectionRect.left);
     coordData.minY = Math.min(coordData.minY, entry.intersectionRect.top);
     coordData.maxX = Math.max(coordData.maxX, entry.intersectionRect.right);
@@ -283,8 +284,8 @@ class ContainerPerformanceObserver {
       height,
     );
     resolvedRootData.size = width * height;
+    resolvedRootData.coordData = coordData;
     containerRootDataMap.set(closestRoot, resolvedRootData);
-    perCallbackContainerState.set(closestRoot, coordData);
 
     // Because we've updated a container we should mark it as updated so we can return it with the list
     containerRootUpdates.add(closestRoot);
@@ -296,8 +297,6 @@ class ContainerPerformanceObserver {
    *  of painted rects.
    */
   emitNewAreaPainted(entry: PerformanceElementTiming, closestRoot: Element) {
-    const paintedRecsInCallback: any =
-      perCallbackContainerState.get(closestRoot) ?? new Set();
     const resolvedRootData =
       ContainerPerformanceObserver.getResolvedDataFromContainerRoot(
         closestRoot,
@@ -316,7 +315,7 @@ class ContainerPerformanceObserver {
 
     const canMerge = (rectA: DOMRectReadOnly, rectB: DOMRectReadOnly) => {
       // Proximity tolerance
-      const pt = 20;
+      const pt = 30;
       // We already throw away overlapping rectangles (TODO we may want to merge overlaps too)
       // We should merge rectangles which are within proximity so we have a "painted area".
       const horizontalMerge =
@@ -336,7 +335,27 @@ class ContainerPerformanceObserver {
 
     // Check if we have new rectangles or are just painting over old areas
     let entryRect = entry.intersectionRect;
-    resolvedRootData.paintedRects?.add(entryRect);
+    if (resolvedRootData.paintedRects.size === 0) {
+      resolvedRootData.paintedRects?.add(entryRect);
+    } else {
+      let mergedRect;
+      let merged: boolean = false;
+      resolvedRootData.paintedRects.forEach((rect) => {
+        if (canMerge(rect, entryRect) && !merged) {
+          console.log("can merge");
+          mergedRect = mergeRects(rect, entryRect);
+          resolvedRootData.paintedRects.delete(rect);
+          // Mark this rect as merged, but don't merge in the loop
+          merged = true;
+        }
+      });
+
+      if (mergedRect) {
+        resolvedRootData.paintedRects.add(mergedRect);
+      } else {
+        resolvedRootData.paintedRects.add(entryRect);
+      }
+    }
 
     // This is an elementtiming we added rather than one which was there initially, remove it and grab the data
     resolvedRootData.name = entry.name;
@@ -347,7 +366,6 @@ class ContainerPerformanceObserver {
     resolvedRootData.intersectionRect = entry.intersectionRect;
 
     // Update States
-    perCallbackContainerState.set(closestRoot, paintedRecsInCallback);
     containerRootDataMap.set(closestRoot, resolvedRootData);
     containerRootUpdates.add(closestRoot);
   }
@@ -376,11 +394,14 @@ class ContainerPerformanceObserver {
       return;
     }
 
+    // Reset coordData for each container
+    containerRootDataMap.forEach((val) => {
+      val.coordData = null;
+      val.paintedRects?.clear();
+    });
+
     // Have any containers been updated?
     containerRootUpdates.clear();
-
-    // Reset state between each callback, this is needed by the `emitLargestSubPaint` strategy
-    perCallbackContainerState.clear();
 
     // Strip elements from the final list that we've added via the polyfill as not to pollute the final set of results.
     const filterEntries = (entry: PerformanceEntry) => {
@@ -401,11 +422,8 @@ class ContainerPerformanceObserver {
         element.getAttribute("elementtiming") === INTERNAL_ATTR_NAME &&
         closestRoot
       ) {
-        if (this.method === "accumulatedSubPaints") {
-          this.accumulatedSubPaints(
-            entry as PerformanceElementTiming,
-            closestRoot,
-          );
+        if (this.method === "aggregatedPaints") {
+          this.aggregatedPaints(entry as PerformanceElementTiming, closestRoot);
         } else {
           this.emitNewAreaPainted(
             entry as PerformanceElementTiming,
