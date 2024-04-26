@@ -17,13 +17,18 @@ interface PerformanceElementTiming extends PerformanceEntry {
   size: number;
 }
 
-interface PerformanceContainerTiming extends PerformanceElementTiming {
+interface PerformanceContainerTiming
+  extends Omit<PerformanceElementTiming, "intersectionRect"> {
+  intersectionRect: DOMRectReadOnly | undefined;
+  largestContentfulPaint?: PerformanceElementTiming;
+  firstContentfulPaint?: PerformanceElementTiming;
+}
+interface ResolvedRootData extends PerformanceContainerTiming {
+  /** Keep track of all the paintedRects */
   paintedRects: Set<DOMRectReadOnly>;
-  tempPaintedRects?: Set<DOMRectReadOnly>;
+  /** For aggregated paints keep track of the union painted rect */
   coordData?: any;
 }
-type ResolvedRootData = PerformanceContainerTiming;
-(window as any).rectsPainted = [];
 
 // We need to set the element timing attribute tag on all elements below "containertiming" before we can start observing
 // Otherwise no elements will be observed
@@ -32,7 +37,7 @@ const containerTimingAttrSelector = "[containertiming]";
 const nativePerformanceObserver = window.PerformanceObserver;
 // containerRoots needs to be set before "observe" has initiated due to the fact new elements could have been injected earlier
 const containerRoots = new Set<Element>();
-const containerRootDataMap = new Map<Element, PerformanceContainerTiming>();
+const containerRootDataMap = new Map<Element, ResolvedRootData>();
 // Keep track of containers that need updating (sub elements have painted), this is reset between observer callbacks
 const containerRootUpdates = new Set<Element>();
 
@@ -111,7 +116,6 @@ class ContainerPerformanceObserver {
     callback: PerformanceObserverCallback,
     method: "aggregatedPaints" | "newAreaPainted" = "aggregatedPaints",
   ) {
-    console.log(method);
     this.nativePerformanceObserver = new nativePerformanceObserver(
       this.callbackWrapper.bind(this),
     );
@@ -204,7 +208,6 @@ class ContainerPerformanceObserver {
 
     if (rectData instanceof Set) {
       rectData?.forEach((rect) => {
-        console.log(rect);
         addOverlayToRect(rect);
       });
     } else {
@@ -276,7 +279,7 @@ class ContainerPerformanceObserver {
     resolvedRootData.url = entry.url;
     resolvedRootData.renderTime = entry.renderTime;
     resolvedRootData.lastPaintedSubElement = entry.element;
-    resolvedRootData.startTime ??= entry.startTime;
+    resolvedRootData.startTime ||= entry.startTime;
     resolvedRootData.intersectionRect = new DOMRectReadOnly(
       coordData.minX,
       coordData.minY,
@@ -302,68 +305,44 @@ class ContainerPerformanceObserver {
         closestRoot,
       );
 
-    const mergeRects = (
-      rectA: DOMRectReadOnly,
-      rectB: DOMRectReadOnly,
-    ): DOMRectReadOnly => {
-      const minX = Math.min(rectA.left, rectB.left);
-      const maxX = Math.max(rectA.right, rectB.right);
-      const minY = Math.min(rectA.top, rectB.top);
-      const maxY = Math.max(rectA.bottom, rectB.bottom);
-      return new DOMRectReadOnly(minX, minY, maxX - minX, maxY - minY);
-    };
-
-    const canMerge = (rectA: DOMRectReadOnly, rectB: DOMRectReadOnly) => {
-      // Proximity tolerance
-      const pt = 30;
-      // We already throw away overlapping rectangles (TODO we may want to merge overlaps too)
-      // We should merge rectangles which are within proximity so we have a "painted area".
-      const horizontalMerge =
-        rectA.bottom >= rectB.top - pt &&
-        rectA.top <= rectB.bottom + pt &&
-        (Math.abs(rectA.right - rectB.left) <= pt ||
-          Math.abs(rectA.left - rectB.right) <= pt);
-
-      const verticalMerge =
-        rectA.right >= rectB.left - pt &&
-        rectA.left <= rectB.right + pt &&
-        (Math.abs(rectA.bottom - rectB.top) <= pt ||
-          Math.abs(rectA.top - rectB.bottom) <= pt);
-
-      return horizontalMerge || verticalMerge;
-    };
-
-    // Check if we have new rectangles or are just painting over old areas
-    let entryRect = entry.intersectionRect;
-    if (resolvedRootData.paintedRects.size === 0) {
-      resolvedRootData.paintedRects?.add(entryRect);
-    } else {
-      let mergedRect;
-      let merged: boolean = false;
-      resolvedRootData.paintedRects.forEach((rect) => {
-        if (canMerge(rect, entryRect) && !merged) {
-          console.log("can merge");
-          mergedRect = mergeRects(rect, entryRect);
-          resolvedRootData.paintedRects.delete(rect);
-          // Mark this rect as merged, but don't merge in the loop
-          merged = true;
-        }
-      });
-
-      if (mergedRect) {
-        resolvedRootData.paintedRects.add(mergedRect);
-      } else {
-        resolvedRootData.paintedRects.add(entryRect);
-      }
+    // There's a weird bug where we sometimes get a load of empty rects (all zero'd out)
+    if (this.isEmptyRect(entry.intersectionRect)) {
+      return;
     }
 
-    // This is an elementtiming we added rather than one which was there initially, remove it and grab the data
+    // We need to keep track of LCP so grab the size
+    if (
+      this.size(entry.intersectionRect) >
+      this.size(
+        resolvedRootData.largestContentfulPaint?.intersectionRect ?? {
+          width: 0,
+          height: 0,
+        },
+      )
+    ) {
+      resolvedRootData.largestContentfulPaint = entry;
+    }
+
+    // Check for overlaps
+    let overlap = false;
+    resolvedRootData.paintedRects.forEach((rect) => {
+      if (this.overlaps(entry.intersectionRect, rect)) {
+        overlap = true;
+      }
+    });
+
+    if (overlap) {
+      return;
+    }
+
     resolvedRootData.name = entry.name;
     resolvedRootData.url = entry.url;
     resolvedRootData.renderTime = entry.renderTime;
     resolvedRootData.lastPaintedSubElement = entry.element;
-    resolvedRootData.startTime ??= entry.startTime;
-    resolvedRootData.intersectionRect = entry.intersectionRect;
+    resolvedRootData.startTime ||= entry.startTime;
+    resolvedRootData.intersectionRect = undefined;
+    resolvedRootData.paintedRects?.add(entry.intersectionRect);
+    resolvedRootData.firstContentfulPaint ??= entry;
 
     // Update States
     containerRootDataMap.set(closestRoot, resolvedRootData);
@@ -377,6 +356,14 @@ class ContainerPerformanceObserver {
       rectB.top > rectA.bottom ||
       rectB.bottom < rectA.top
     );
+  }
+
+  isEmptyRect(rect: DOMRectReadOnly): boolean {
+    return rect.width === 0 && rect.height === 0;
+  }
+
+  size(rect: { width: number; height: number }): number {
+    return rect.width * rect.height;
   }
 
   /**
@@ -397,7 +384,6 @@ class ContainerPerformanceObserver {
     // Reset coordData for each container
     containerRootDataMap.forEach((val) => {
       val.coordData = null;
-      val.paintedRects?.clear();
     });
 
     // Have any containers been updated?
@@ -466,20 +452,24 @@ class ContainerPerformanceObserver {
           name: resolvedRootData.name,
           identifier: root.getAttribute("elementtiming"),
           lastPaintedSubElement: resolvedRootData.lastPaintedSubElement,
+          largestContentfulPaint: resolvedRootData.largestContentfulPaint,
+          firstContentfulPaint: resolvedRootData.firstContentfulPaint,
           startTime: resolvedRootData.startTime,
           toJSON: () => JSON.stringify(this),
-          paintedRects: resolvedRootData.paintedRects,
         });
 
         if (this.debug) {
           if (this.method === "newAreaPainted") {
             const rects = resolvedRootData.paintedRects;
             ContainerPerformanceObserver.paintDebugOverlay(rects);
+            return;
           }
-          // debug mode shows the painted rectangles
-          ContainerPerformanceObserver.paintDebugOverlay(
-            resolvedRootData.intersectionRect,
-          );
+          if (resolvedRootData.intersectionRect) {
+            // debug mode shows the painted rectangles
+            ContainerPerformanceObserver.paintDebugOverlay(
+              resolvedRootData.intersectionRect,
+            );
+          }
         }
       });
 

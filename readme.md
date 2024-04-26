@@ -46,7 +46,7 @@ const myObserver = new PerformanceObserver((list) => {
 }
     **/
   });
-});
+}, "newAreaPainted" | "aggregatedPaints"); // "aggregatedPaints by default"
 
 observer.observe();
 ```
@@ -82,6 +82,48 @@ You can open the HTML of each example and look in the dev tools console to see w
 - [DOM Updates Example](./examples/adding-content/index.html)
 - [Shadow DOM](./examples/shadow-dom/index.html)
 - [SVG](./examples/svg/index.html)
+
+## newAreaPainted and aggregatedPaints
+
+There are 2 modes you can use this polyfill in, `newAreaPainted` and `aggregatedPaints`.
+
+### `aggregatedPaints`
+
+This mode will collect a union of paints into a single rectangle and return that as the `intersectionRect`. Thus the intersectionRect value is the "smallest rectangle covering the sub elements painted".
+This is useful if you want to know how much of your container has painted, the cons with this mode are that it may cover an area which hasn't fully been painted yet if there's been content painted either side of it.
+
+```mermaid
+block-beta
+  block:e
+    block:inner
+        l["Painted"]
+        m["Not painted"]
+        r["Painted"]
+    end
+  end
+  style inner fill:#00800078
+```
+
+If the browser paints content from one area to another (such as text on the left and an image on the right) then it would be fine.
+
+```mermaid
+block-beta
+  block:e
+    block:inner
+        l["Painted"]
+        r["Painted"]
+    end
+    m["Not painted"]
+  end
+  style inner fill:#00800078
+```
+
+### `newAreaPainted`
+
+This mode fires when there's been paints in new areas, this is similar to the previous mode (as elements only fire element-timing events once), except 2 differences:
+
+1. Even if an element is removed from the DOM and replaced with another element, if it paints in an area already painted that would not trigger a new observer event to fire.
+2. This does not return an aggregated rectangle of paints like the above but instead fires when there's been a paint in a new area
 
 ## Debug Mode
 
