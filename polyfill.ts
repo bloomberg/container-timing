@@ -18,10 +18,12 @@ interface PerformanceElementTiming extends PerformanceEntry {
 }
 
 interface PerformanceContainerTiming
-  extends Omit<PerformanceElementTiming, "intersectionRect"> {
+  extends Omit<PerformanceElementTiming, "intersectionRect" | "renderTime"> {
   intersectionRect: DOMRectReadOnly | undefined;
+  renderTime?: number;
   largestContentfulPaint?: PerformanceElementTiming;
   firstContentfulPaint?: PerformanceElementTiming;
+  visuallyCompletePaint?: any;
 }
 interface ResolvedRootData extends PerformanceContainerTiming {
   /** Keep track of all the paintedRects */
@@ -220,11 +222,11 @@ class ContainerPerformanceObserver {
       });
     }, 1000);
 
-    // setTimeout(() => {
-    //   divCol.forEach((div) => {
-    //     div.remove();
-    //   });
-    // }, 2000);
+    setTimeout(() => {
+      divCol.forEach((div) => {
+        div.remove();
+      });
+    }, 2000);
   }
 
   observe(options: PerformanceObserverInit) {
@@ -438,8 +440,7 @@ class ContainerPerformanceObserver {
         if (!resolvedRootData) {
           return;
         }
-
-        containerEntries.push({
+        const containerCandidate: any = {
           duration: 0,
           naturalHeight: 0,
           naturalWidth: 0,
@@ -456,7 +457,17 @@ class ContainerPerformanceObserver {
           firstContentfulPaint: resolvedRootData.firstContentfulPaint,
           startTime: resolvedRootData.startTime,
           toJSON: () => JSON.stringify(this),
-        });
+        };
+
+        if (this.method === "newAreaPainted") {
+          containerCandidate.renderTime = undefined;
+          containerCandidate.visuallyCompletePaint = {
+            renderTime: resolvedRootData.renderTime,
+            lastPaintedSubElement: resolvedRootData.lastPaintedSubElement,
+          };
+        }
+
+        containerEntries.push(containerCandidate);
 
         if (this.debug) {
           if (this.method === "newAreaPainted") {
