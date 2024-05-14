@@ -407,6 +407,9 @@ class ContainerPerformanceObserver {
     // Have any containers been updated?
     containerRootUpdates.clear();
 
+    // Reset last resolved data state
+    lastResolvedData = { paintedRects: new Set() };
+
     // Strip elements from the final list that we've added via the polyfill as not to pollute the final set of results.
     const filterEntries = (entry: PerformanceEntry) => {
       // This should ensure we're dealing with a PerformanceElementTiming instance
