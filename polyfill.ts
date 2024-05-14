@@ -36,7 +36,7 @@ interface ResolvedRootData extends PerformanceContainerTiming {
 // Otherwise no elements will be observed
 const INTERNAL_ATTR_NAME = "POLYFILL-ELEMENTTIMING";
 const containerTimingAttrSelector = "[containertiming]";
-const nativePerformanceObserver = window.PerformanceObserver;
+const NativePerformanceObserver = window.PerformanceObserver;
 // containerRoots needs to be set before "observe" has initiated due to the fact new elements could have been injected earlier
 const containerRoots = new Set<Element>();
 const containerRootDataMap = new Map<Element, ResolvedRootData>();
@@ -117,13 +117,13 @@ class ContainerPerformanceObserver {
   override: boolean;
   debug: boolean;
   method: string;
-  static supportedEntryTypes = nativePerformanceObserver.supportedEntryTypes;
+  static supportedEntryTypes = NativePerformanceObserver.supportedEntryTypes;
 
   constructor(
     callback: PerformanceObserverCallback,
     method: "aggregatedPaints" | "newAreaPainted" = "aggregatedPaints",
   ) {
-    this.nativePerformanceObserver = new nativePerformanceObserver(
+    this.nativePerformanceObserver = new NativePerformanceObserver(
       this.callbackWrapper.bind(this),
     );
     this.callback = callback;
