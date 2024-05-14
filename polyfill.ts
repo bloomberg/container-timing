@@ -42,6 +42,11 @@ const containerRoots = new Set<Element>();
 const containerRootDataMap = new Map<Element, ResolvedRootData>();
 // Keep track of containers that need updating (sub elements have painted), this is reset between observer callbacks
 const containerRootUpdates = new Set<Element>();
+// Keep track of the last set of resolved data so it can be shown in debug mode
+let lastResolvedData: Partial<{
+  paintedRects: Set<DOMRectReadOnly>;
+  intersectionRect: DOMRectReadOnly;
+}>;
 
 const mutationObserverCallback = (mutationList: MutationRecord[]) => {
   const findContainers = (parentNode: Element) => {
@@ -192,7 +197,11 @@ class ContainerPerformanceObserver {
     return resolvedRootData;
   }
 
-  static paintDebugOverlay(rectData: DOMRectReadOnly | Set<DOMRectReadOnly>) {
+  static paintDebugOverlay(rectData?: DOMRectReadOnly | Set<DOMRectReadOnly>) {
+    if (!rectData) {
+      return;
+    }
+
     const divCol: Set<Element> = new Set();
     const addOverlayToRect = (rectData: DOMRectReadOnly) => {
       const div = document.createElement("div");
@@ -202,7 +211,7 @@ class ContainerPerformanceObserver {
       div.style.height = `${rectData.height}px`;
       div.style.top = `${rectData.top}px`;
       div.style.left = `${rectData.left}px`;
-      div.style.position = "fixed";
+      div.style.position = "absolute";
       div.style.transition = "background-color 1s";
       document.body.appendChild(div);
       divCol.add(div);
@@ -236,8 +245,6 @@ class ContainerPerformanceObserver {
       !options?.entryTypes?.includes("element")
     ) {
       this.override = false;
-      this.nativePerformanceObserver.observe(options);
-      return;
     }
 
     this.nativePerformanceObserver.observe(options);
@@ -256,7 +263,10 @@ class ContainerPerformanceObserver {
    *  that is the union of all painted elements. Due to the nature of the underlying `element-timing` algorithm only new areas
    *  should be painted unless the DOM elements have been swapped out in various positions.
    */
-  aggregatedPaints(entry: PerformanceElementTiming, closestRoot: Element) {
+  static aggregatedPaints(
+    entry: PerformanceElementTiming,
+    closestRoot: Element,
+  ) {
     const resolvedRootData =
       ContainerPerformanceObserver.getResolvedDataFromContainerRoot(
         closestRoot,
@@ -275,6 +285,12 @@ class ContainerPerformanceObserver {
     coordData.maxY = Math.max(coordData.maxY, entry.intersectionRect.bottom);
     const width = coordData.maxX - coordData.minX;
     const height = coordData.maxY - coordData.minY;
+    const newRect = new DOMRectReadOnly(
+      coordData.minX,
+      coordData.minY,
+      width,
+      height,
+    );
 
     // This is an elementtiming we added rather than one which was there initially, remove it and grab the data
     resolvedRootData.name = entry.name;
@@ -282,18 +298,14 @@ class ContainerPerformanceObserver {
     resolvedRootData.renderTime = entry.renderTime;
     resolvedRootData.lastPaintedSubElement = entry.element;
     resolvedRootData.startTime ||= entry.startTime;
-    resolvedRootData.intersectionRect = new DOMRectReadOnly(
-      coordData.minX,
-      coordData.minY,
-      width,
-      height,
-    );
+    resolvedRootData.intersectionRect = newRect;
     resolvedRootData.size = width * height;
     resolvedRootData.coordData = coordData;
     containerRootDataMap.set(closestRoot, resolvedRootData);
 
     // Because we've updated a container we should mark it as updated so we can return it with the list
     containerRootUpdates.add(closestRoot);
+    lastResolvedData.intersectionRect = newRect;
   }
 
   /**
@@ -301,21 +313,24 @@ class ContainerPerformanceObserver {
    *  been painted. This requires having some state to know which areas have already been covered, so we need to keep hold
    *  of painted rects.
    */
-  emitNewAreaPainted(entry: PerformanceElementTiming, closestRoot: Element) {
+  static emitNewAreaPainted(
+    entry: PerformanceElementTiming,
+    closestRoot: Element,
+  ) {
     const resolvedRootData =
       ContainerPerformanceObserver.getResolvedDataFromContainerRoot(
         closestRoot,
       );
 
     // There's a weird bug where we sometimes get a load of empty rects (all zero'd out)
-    if (this.isEmptyRect(entry.intersectionRect)) {
+    if (ContainerPerformanceObserver.isEmptyRect(entry.intersectionRect)) {
       return;
     }
 
     // We need to keep track of LCP so grab the size
     if (
-      this.size(entry.intersectionRect) >
-      this.size(
+      ContainerPerformanceObserver.size(entry.intersectionRect) >
+      ContainerPerformanceObserver.size(
         resolvedRootData.largestContentfulPaint?.intersectionRect ?? {
           width: 0,
           height: 0,
@@ -328,7 +343,7 @@ class ContainerPerformanceObserver {
     // Check for overlaps
     let overlap = false;
     resolvedRootData.paintedRects.forEach((rect) => {
-      if (this.overlaps(entry.intersectionRect, rect)) {
+      if (ContainerPerformanceObserver.overlaps(entry.intersectionRect, rect)) {
         overlap = true;
       }
     });
@@ -349,9 +364,10 @@ class ContainerPerformanceObserver {
     // Update States
     containerRootDataMap.set(closestRoot, resolvedRootData);
     containerRootUpdates.add(closestRoot);
+    lastResolvedData.paintedRects?.add(entry.intersectionRect);
   }
 
-  overlaps(rectA: DOMRectReadOnly, rectB: DOMRectReadOnly): boolean {
+  static overlaps(rectA: DOMRectReadOnly, rectB: DOMRectReadOnly): boolean {
     return !(
       rectB.left > rectA.right ||
       rectB.right < rectA.left ||
@@ -360,11 +376,11 @@ class ContainerPerformanceObserver {
     );
   }
 
-  isEmptyRect(rect: DOMRectReadOnly): boolean {
+  static isEmptyRect(rect: DOMRectReadOnly): boolean {
     return rect.width === 0 && rect.height === 0;
   }
 
-  size(rect: { width: number; height: number }): number {
+  static size(rect: { width: number; height: number }): number {
     return rect.width * rect.height;
   }
 
@@ -411,9 +427,12 @@ class ContainerPerformanceObserver {
         closestRoot
       ) {
         if (this.method === "aggregatedPaints") {
-          this.aggregatedPaints(entry as PerformanceElementTiming, closestRoot);
+          ContainerPerformanceObserver.aggregatedPaints(
+            entry as PerformanceElementTiming,
+            closestRoot,
+          );
         } else {
-          this.emitNewAreaPainted(
+          ContainerPerformanceObserver.emitNewAreaPainted(
             entry as PerformanceElementTiming,
             closestRoot,
           );
@@ -471,14 +490,14 @@ class ContainerPerformanceObserver {
 
         if (this.debug) {
           if (this.method === "newAreaPainted") {
-            const rects = resolvedRootData.paintedRects;
+            const rects = lastResolvedData?.paintedRects;
             ContainerPerformanceObserver.paintDebugOverlay(rects);
             return;
           }
-          if (resolvedRootData.intersectionRect) {
+          if (lastResolvedData.intersectionRect) {
             // debug mode shows the painted rectangles
             ContainerPerformanceObserver.paintDebugOverlay(
-              resolvedRootData.intersectionRect,
+              lastResolvedData.intersectionRect,
             );
           }
         }

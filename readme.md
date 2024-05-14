@@ -155,6 +155,7 @@ In order to alleviate this issue we need to recourse through every child of ever
 ## FAQs
 
 ### Should the user know how much has painted?
+
 When we get paint events for a container its difficult to know if its fully rendered or not. In our
 polyfill we will fire multiple times for each new paint happening in a
 container.
@@ -165,12 +166,14 @@ their paint time. That being said, this polyfill does provide a
 last paint update.
 
 ### Should we stop observing on interaction?
+
 Due to the nature of containers having multiple events (unlike single element), we may want
 to stop observing once there's interaction so we have the concept of a "final
 candidate". This would let developers know the renderTime of the last paint
 after the page has loaded.
 
 ### Should this polyfill support additional elements?
+
 There will be new performance entries when there's DOM mutation happening within
 a container, such as addition of new children. The observer currently fires new
 entries when this happens if they have caused new paint events.
