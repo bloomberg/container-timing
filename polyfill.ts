@@ -1,8 +1,3 @@
-/**
- * The PerformanceElementTiming interface contains render timing information for image and text node elements the developer annotated with an elementtiming attribute for observation.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceElementTiming)
- */
 interface PerformanceElementTiming extends PerformanceEntry {
   name: string;
   lastPaintedSubElement: Element | null;
@@ -17,13 +12,16 @@ interface PerformanceElementTiming extends PerformanceEntry {
   size: number;
 }
 
-interface PerformanceContainerTiming
-  extends Omit<PerformanceElementTiming, "intersectionRect" | "renderTime"> {
+interface PerformanceContainerTiming {
   intersectionRect: DOMRectReadOnly | undefined;
   renderTime?: number;
-  largestContentfulPaint?: PerformanceElementTiming;
-  firstContentfulPaint?: PerformanceElementTiming;
+  firstContentfulPaint?: { renderTime: number; element: Element | null } | null;
   visuallyCompletePaint?: any;
+  identifier: string | null;
+  lastPaintedSubElement?: Element | null;
+  size: number;
+  startTime: number;
+  largestContentfulPaint: { size: number; element: Element | null } | null;
 }
 interface ResolvedRootData extends PerformanceContainerTiming {
   /** Keep track of all the paintedRects */
@@ -31,6 +29,11 @@ interface ResolvedRootData extends PerformanceContainerTiming {
   /** For aggregated paints keep track of the union painted rect */
   coordData?: any;
 }
+
+type ObserveOptions = {
+  nestedStrategy: "ignore" | "transparent" | "cooperative";
+  method: "aggregatedPaints" | "newAreaPainted";
+};
 
 // We need to set the element timing attribute tag on all elements below "containertiming" before we can start observing
 // Otherwise no elements will be observed
@@ -113,24 +116,25 @@ document.addEventListener("DOMContentLoaded", () => {
  */
 class ContainerPerformanceObserver {
   nativePerformanceObserver: PerformanceObserver;
-  callback: PerformanceObserverCallback;
-  override: boolean;
   debug: boolean;
-  method: string;
+  method: ObserveOptions["method"] = "newAreaPainted";
+  nestedStrategy: ObserveOptions["nestedStrategy"] = "ignore";
+  callback: (list: {
+    getEntries: () => PerformanceContainerTiming[];
+  }) => PerformanceContainerTiming[];
+
   static supportedEntryTypes = NativePerformanceObserver.supportedEntryTypes;
 
   constructor(
-    callback: PerformanceObserverCallback,
-    method: "aggregatedPaints" | "newAreaPainted" = "aggregatedPaints",
+    callback: (list: {
+      getEntries: () => PerformanceContainerTiming[];
+    }) => PerformanceContainerTiming[],
   ) {
     this.nativePerformanceObserver = new NativePerformanceObserver(
       this.callbackWrapper.bind(this),
     );
     this.callback = callback;
-    // If this polyfill is being used we can assume we're actively overriding PerformanceObserver
-    this.override = true;
     this.debug = (window as any).ctDebug;
-    this.method = method;
   }
 
   static walkDescendants(elm: Element, callback: (elm: Element) => void) {
@@ -178,20 +182,13 @@ class ContainerPerformanceObserver {
       container,
     ) ?? {
       paintedRects: new Set(),
-      name: "",
-      duration: 0,
-      element: null,
-      entryType: "",
       identifier: "",
       intersectionRect: new DOMRectReadOnly(),
-      lastPaintedSubElement: null,
-      naturalHeight: 0,
-      naturalWidth: 0,
       renderTime: 0,
       size: 0,
       startTime: 0,
-      toJSON: () => {},
-      url: "",
+      largestContentfulPaint: null,
+      firstContentfulPaint: null,
     };
 
     return resolvedRootData;
@@ -238,16 +235,10 @@ class ContainerPerformanceObserver {
     }, 2000);
   }
 
-  observe(options: PerformanceObserverInit) {
-    // If we're not observing element timing we should just "pass through" to the normal PerformanceObserver
-    if (
-      options.type !== "element" &&
-      !options?.entryTypes?.includes("element")
-    ) {
-      this.override = false;
-    }
-
-    this.nativePerformanceObserver.observe(options);
+  observe(options: ObserveOptions) {
+    this.method = options.method;
+    this.nestedStrategy = options.nestedStrategy;
+    this.nativePerformanceObserver.observe({ type: "element", buffered: true });
   }
 
   disconnect() {
@@ -263,10 +254,7 @@ class ContainerPerformanceObserver {
    *  that is the union of all painted elements. Due to the nature of the underlying `element-timing` algorithm only new areas
    *  should be painted unless the DOM elements have been swapped out in various positions.
    */
-  static aggregatedPaints(
-    entry: PerformanceElementTiming,
-    closestRoot: Element,
-  ) {
+  aggregatedPaints(entry: PerformanceElementTiming, closestRoot: Element) {
     const resolvedRootData =
       ContainerPerformanceObserver.getResolvedDataFromContainerRoot(
         closestRoot,
@@ -293,8 +281,6 @@ class ContainerPerformanceObserver {
     );
 
     // This is an elementtiming we added rather than one which was there initially, remove it and grab the data
-    resolvedRootData.name = entry.name;
-    resolvedRootData.url = entry.url;
     resolvedRootData.renderTime = entry.renderTime;
     resolvedRootData.lastPaintedSubElement = entry.element;
     resolvedRootData.startTime ||= entry.startTime;
@@ -306,6 +292,9 @@ class ContainerPerformanceObserver {
     // Because we've updated a container we should mark it as updated so we can return it with the list
     containerRootUpdates.add(closestRoot);
     lastResolvedData.intersectionRect = newRect;
+
+    // If nested update any parents
+    this.updateParentIfExists(closestRoot);
   }
 
   /**
@@ -313,14 +302,14 @@ class ContainerPerformanceObserver {
    *  been painted. This requires having some state to know which areas have already been covered, so we need to keep hold
    *  of painted rects.
    */
-  static emitNewAreaPainted(
-    entry: PerformanceElementTiming,
-    closestRoot: Element,
-  ) {
+  emitNewAreaPainted(entry: PerformanceElementTiming, closestRoot: Element) {
     const resolvedRootData =
       ContainerPerformanceObserver.getResolvedDataFromContainerRoot(
         closestRoot,
       );
+    const incomingEntrySize = ContainerPerformanceObserver.size(
+      entry.intersectionRect,
+    );
 
     // There's a weird bug where we sometimes get a load of empty rects (all zero'd out)
     if (ContainerPerformanceObserver.isEmptyRect(entry.intersectionRect)) {
@@ -329,15 +318,13 @@ class ContainerPerformanceObserver {
 
     // We need to keep track of LCP so grab the size
     if (
-      ContainerPerformanceObserver.size(entry.intersectionRect) >
-      ContainerPerformanceObserver.size(
-        resolvedRootData.largestContentfulPaint?.intersectionRect ?? {
-          width: 0,
-          height: 0,
-        },
-      )
+      resolvedRootData.largestContentfulPaint &&
+      incomingEntrySize > resolvedRootData.largestContentfulPaint?.size
     ) {
-      resolvedRootData.largestContentfulPaint = entry;
+      resolvedRootData.largestContentfulPaint = {
+        size: incomingEntrySize,
+        element: entry.element,
+      };
     }
 
     // Check for overlaps
@@ -352,19 +339,70 @@ class ContainerPerformanceObserver {
       return;
     }
 
-    resolvedRootData.name = entry.name;
-    resolvedRootData.url = entry.url;
     resolvedRootData.renderTime = entry.renderTime;
     resolvedRootData.lastPaintedSubElement = entry.element;
     resolvedRootData.startTime ||= entry.startTime;
     resolvedRootData.intersectionRect = undefined;
     resolvedRootData.paintedRects?.add(entry.intersectionRect);
-    resolvedRootData.firstContentfulPaint ??= entry;
+    resolvedRootData.firstContentfulPaint ??= {
+      renderTime: entry.renderTime,
+      element: entry.element,
+    };
 
     // Update States
     containerRootDataMap.set(closestRoot, resolvedRootData);
     containerRootUpdates.add(closestRoot);
     lastResolvedData.paintedRects?.add(entry.intersectionRect);
+
+    // If nested update any parents
+    this.updateParentIfExists(closestRoot);
+  }
+
+  // The container may have a parent container, if it does we should pass values up the chain
+  updateParentIfExists(containerRoot: Element): void {
+    const strategy = this.nestedStrategy;
+    const parentRoot = containerRoot.closest("[containertiming]");
+    // If there's no parent we don't need to do anything here
+    // Also if we set ignore we don't need to alert any parent container
+    if (!parentRoot || strategy === "ignore") {
+      return;
+    }
+
+    const resolvedData =
+      ContainerPerformanceObserver.getResolvedDataFromContainerRoot(
+        containerRoot,
+      );
+    const resolvedParentData =
+      ContainerPerformanceObserver.getResolvedDataFromContainerRoot(parentRoot);
+
+    const rLcp = resolvedData.largestContentfulPaint?.size ?? 0;
+    const rpLcp = resolvedParentData.largestContentfulPaint?.size ?? 0;
+
+    const rFcp = resolvedData.firstContentfulPaint?.renderTime ?? Infinity;
+    const rpFcp = resolvedData.firstContentfulPaint?.renderTime ?? Infinity;
+
+    const rrt = resolvedData.renderTime ?? 0;
+    const rprt = resolvedParentData.renderTime ?? 0;
+
+    // Check LCP, if there's a larger LCP we should promote it upwards
+    if (rLcp > rpLcp) {
+      resolvedParentData.largestContentfulPaint =
+        resolvedData.largestContentfulPaint;
+      containerRootUpdates.add(parentRoot);
+    }
+
+    // Check FCP, if there's a faster time we should promote it upwards
+    if (rFcp < rpFcp) {
+      resolvedParentData.firstContentfulPaint =
+        resolvedData.firstContentfulPaint;
+      containerRootUpdates.add(parentRoot);
+    }
+
+    // Check Visually Complete
+    if (rrt > rprt) {
+      resolvedData.renderTime = resolvedParentData.renderTime;
+      containerRootUpdates.add(parentRoot);
+    }
   }
 
   static overlaps(rectA: DOMRectReadOnly, rectB: DOMRectReadOnly): boolean {
@@ -389,16 +427,6 @@ class ContainerPerformanceObserver {
    * @param {PerformanceObserverEntryList} list
    */
   callbackWrapper(list: PerformanceObserverEntryList) {
-    // Check list for element timing entries, we don't care about other event type
-    // Also if we're not actively observing element timing (override) don't bother augmenting
-    if (
-      this.override === false ||
-      list.getEntriesByType("element").length === 0
-    ) {
-      this.callback(list, this.nativePerformanceObserver);
-      return;
-    }
-
     // Reset coordData for each container
     containerRootDataMap.forEach((val) => {
       val.coordData = null;
@@ -410,18 +438,17 @@ class ContainerPerformanceObserver {
     // Reset last resolved data state
     lastResolvedData = { paintedRects: new Set() };
 
-    // Strip elements from the final list that we've added via the polyfill as not to pollute the final set of results.
-    const filterEntries = (entry: PerformanceEntry) => {
+    const processEntries = (entry: PerformanceEntry): void => {
       // This should ensure we're dealing with a PerformanceElementTiming instance
       // We can't use instanceOf here as the class doesn't exist at the time of writing
       if (entry.entryType !== "element") {
-        return true;
+        return;
       }
 
       const entryElmTiming = entry as PerformanceElementTiming;
       const element = entryElmTiming.element;
       if (!element) {
-        return false;
+        return;
       }
 
       const closestRoot = element.closest(containerTimingAttrSelector);
@@ -430,31 +457,19 @@ class ContainerPerformanceObserver {
         closestRoot
       ) {
         if (this.method === "aggregatedPaints") {
-          ContainerPerformanceObserver.aggregatedPaints(
-            entry as PerformanceElementTiming,
-            closestRoot,
-          );
+          this.aggregatedPaints(entry as PerformanceElementTiming, closestRoot);
         } else {
-          ContainerPerformanceObserver.emitNewAreaPainted(
+          this.emitNewAreaPainted(
             entry as PerformanceElementTiming,
             closestRoot,
           );
         }
-
-        // If elementtiming was explicitly set, we should preserve this entry as the developer wanted this information
-        if (element.getAttribute("initial-elementtiming-set")) {
-          return true;
-        }
-
-        return false;
       }
-
-      return true;
     };
 
     // If any updates have happened within a container add the container to the results too
     // We achieve this by checking containerRootUpdates for entries
-    const concatContainersIfNeeded = () => {
+    const fetchUpdatedContainers = () => {
       const containerEntries: PerformanceContainerTiming[] = [];
       // If any of these updates happened in a container, add the container to the end of the list
       containerRootUpdates.forEach((root) => {
@@ -462,23 +477,15 @@ class ContainerPerformanceObserver {
         if (!resolvedRootData) {
           return;
         }
-        const containerCandidate: any = {
-          duration: 0,
-          naturalHeight: 0,
-          naturalWidth: 0,
+        const containerCandidate: PerformanceContainerTiming = {
           intersectionRect: resolvedRootData.intersectionRect,
           size: resolvedRootData.size,
-          element: root,
-          entryType: "container-element",
           renderTime: resolvedRootData.renderTime,
-          url: resolvedRootData.url,
-          name: resolvedRootData.name,
-          identifier: root.getAttribute("elementtiming"),
+          identifier: root.getAttribute("containertiming"),
           lastPaintedSubElement: resolvedRootData.lastPaintedSubElement,
           largestContentfulPaint: resolvedRootData.largestContentfulPaint,
           firstContentfulPaint: resolvedRootData.firstContentfulPaint,
           startTime: resolvedRootData.startTime,
-          toJSON: () => JSON.stringify(this),
         };
 
         if (this.method === "newAreaPainted") {
@@ -509,29 +516,13 @@ class ContainerPerformanceObserver {
       return containerEntries;
     };
 
+    list.getEntries().forEach(processEntries);
+    const containers = fetchUpdatedContainers();
+
     const syntheticList = {
-      getEntriesByType: (type: string) => {
-        return list
-          .getEntriesByType(type)
-          .filter(filterEntries)
-          .concat(concatContainersIfNeeded());
-      },
-      getEntries: () => {
-        return list
-          .getEntries()
-          .filter(filterEntries)
-          .concat(concatContainersIfNeeded());
-      },
-      getEntriesByName: (name: string) => {
-        return list
-          .getEntriesByName(name)
-          .filter(filterEntries)
-          .concat(concatContainersIfNeeded());
-      },
+      getEntries: () => containers,
     };
 
-    this.callback(syntheticList, this);
+    this.callback(syntheticList);
   }
 }
-
-window.PerformanceObserver = ContainerPerformanceObserver;

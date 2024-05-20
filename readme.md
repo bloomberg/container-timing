@@ -125,6 +125,28 @@ This mode fires when there's been paints in new areas, this is similar to the pr
 1. Even if an element is removed from the DOM and replaced with another element, if it paints in an area already painted that would not trigger a new observer event to fire.
 2. This does not return an aggregated rectangle of paints like the above but instead fires when there's been a paint in a new area
 
+## Nested Containers
+
+You have the ability to nest containers within one another, entries for each container will still be emitted, for filtering on the container you're interested in its best to use an identifier when setting the attribute, such as `containertiming="myContainer"`.
+
+There are various strategies for how we deal with nested containers, ignoring by default.
+
+### `ignore`
+
+This will treat both containers in isolation and won't pass up any entry information from one container to a parent. Anything which happens to a sub-container is ignored by the parent.
+This can be useful if the inner container is unrelated to your content and you don't want to track any rendering behavior from it at all.
+
+### `transparent`
+
+This is similar to ignore above, but will still account for any changes happening in the inner-container, as though the boundary never existed in the first place. From the perspective the inner-container attribute has no effect.
+The inner container will continue to receive its events like normal
+
+### `shadowed`
+
+This mode is similar to the above except the values received by the outer container are set to the inner-container's root. For example: If there is an Largest Contentful Paint event happening within the inner container, both containers would receive the entry, but the outer container would receive the inner-container's root as the element.
+
+This is useful if you only care about tracking the inner container as a whole, but are not interested in its implementation.
+
 ## Debug Mode
 
 You can set a global `ctDebug` flag to true in order to see paint rectangles from the collection of paints when a container has updated.
