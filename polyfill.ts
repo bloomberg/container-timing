@@ -15,7 +15,7 @@ interface PerformanceElementTiming extends PerformanceEntry {
 interface PerformanceContainerTiming {
   intersectionRect: DOMRectReadOnly | undefined;
   renderTime?: number;
-  firstContentfulPaint?: { renderTime: number; element: Element | null } | null;
+  firstContentfulPaint: { renderTime: number; element: Element | null } | null;
   visuallyCompletePaint?: any;
   identifier: string | null;
   lastPaintedSubElement?: Element | null;
@@ -31,7 +31,7 @@ interface ResolvedRootData extends PerformanceContainerTiming {
 }
 
 type ObserveOptions = {
-  nestedStrategy: "ignore" | "transparent" | "cooperative";
+  nestedStrategy: "ignore" | "transparent";
   method: "aggregatedPaints" | "newAreaPainted";
 };
 
@@ -310,6 +310,8 @@ class ContainerPerformanceObserver {
     const incomingEntrySize = ContainerPerformanceObserver.size(
       entry.intersectionRect,
     );
+    const currentContainerSize =
+      resolvedRootData.largestContentfulPaint?.size ?? 0;
 
     // There's a weird bug where we sometimes get a load of empty rects (all zero'd out)
     if (ContainerPerformanceObserver.isEmptyRect(entry.intersectionRect)) {
@@ -317,10 +319,7 @@ class ContainerPerformanceObserver {
     }
 
     // We need to keep track of LCP so grab the size
-    if (
-      resolvedRootData.largestContentfulPaint &&
-      incomingEntrySize > resolvedRootData.largestContentfulPaint?.size
-    ) {
+    if (incomingEntrySize > currentContainerSize) {
       resolvedRootData.largestContentfulPaint = {
         size: incomingEntrySize,
         element: entry.element,
@@ -344,6 +343,8 @@ class ContainerPerformanceObserver {
     resolvedRootData.startTime ||= entry.startTime;
     resolvedRootData.intersectionRect = undefined;
     resolvedRootData.paintedRects?.add(entry.intersectionRect);
+    resolvedRootData.size += incomingEntrySize;
+    resolvedRootData.identifier ||= closestRoot.getAttribute("containertiming");
     resolvedRootData.firstContentfulPaint ??= {
       renderTime: entry.renderTime,
       element: entry.element,
@@ -361,7 +362,9 @@ class ContainerPerformanceObserver {
   // The container may have a parent container, if it does we should pass values up the chain
   updateParentIfExists(containerRoot: Element): void {
     const strategy = this.nestedStrategy;
-    const parentRoot = containerRoot.closest("[containertiming]");
+    // The containerRoot itself has this selector, so to avoid self-matching we should go one level up
+    const parentRoot =
+      containerRoot.parentElement?.closest("[containertiming]");
     // If there's no parent we don't need to do anything here
     // Also if we set ignore we don't need to alert any parent container
     if (!parentRoot || strategy === "ignore") {
@@ -379,7 +382,8 @@ class ContainerPerformanceObserver {
     const rpLcp = resolvedParentData.largestContentfulPaint?.size ?? 0;
 
     const rFcp = resolvedData.firstContentfulPaint?.renderTime ?? Infinity;
-    const rpFcp = resolvedData.firstContentfulPaint?.renderTime ?? Infinity;
+    const rpFcp =
+      resolvedParentData.firstContentfulPaint?.renderTime ?? Infinity;
 
     const rrt = resolvedData.renderTime ?? 0;
     const rprt = resolvedParentData.renderTime ?? 0;
@@ -481,7 +485,7 @@ class ContainerPerformanceObserver {
           intersectionRect: resolvedRootData.intersectionRect,
           size: resolvedRootData.size,
           renderTime: resolvedRootData.renderTime,
-          identifier: root.getAttribute("containertiming"),
+          identifier: resolvedRootData.identifier,
           lastPaintedSubElement: resolvedRootData.lastPaintedSubElement,
           largestContentfulPaint: resolvedRootData.largestContentfulPaint,
           firstContentfulPaint: resolvedRootData.firstContentfulPaint,

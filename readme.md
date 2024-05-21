@@ -21,29 +21,24 @@ const myObserver = new PerformanceObserver((list) => {
   list.getEntries().forEach((entry) => {
     console.log(entry);
     /**
-{
-    "duration": 0,
-    "naturalHeight": 0,
-    "naturalWidth": 0,
-    "intersectionRect": {
-      "x": 10,
-      "y": 10,
-      "width": 2123.7501640319824,
-      "height": 522.3333435058594,
-      "top": 10,
-      "right": 2133.7501640319824,
-      "bottom": 532.3333435058594,
-      "left": 10
-    },
-    "element": div.table,
-    "entryType": "container-element",
-    "renderTime": 45.5,
-    "url": "",
-    "name": "text-paint",
-    "identifier": "",
-    "lastPaintedSubElement": div.dynUpdate,
-    "startTime": 45.5
-}
+    {
+        "size": 64659.1ss373996414,
+        "identifier": "wrapper",
+        "lastPaintedSubElement": {},
+        "largestContentfulPaint": {
+            "size": 64659.117373996414,
+            "element": {}
+        },
+        "firstContentfulPaint": {
+            "renderTime": 5062.0999999996275,
+            "element": {}
+        },
+        "startTime": 5062.0999999996275,
+        "visuallyCompletePaint": {
+            "renderTime": 5062.0999999996275,
+            "lastPaintedSubElement": {}
+        }
+    }
     **/
   });
 }, "newAreaPainted" | "aggregatedPaints"); // "aggregatedPaints by default"
@@ -51,28 +46,23 @@ const myObserver = new PerformanceObserver((list) => {
 observer.observe();
 ```
 
-The difference between a container-element entry is:
-
-1. It's entryType is `container-element`
-2. It holds a `lastPaintedSubElement` field to show which inner element caused the most recent paint event.
-
 ## Entry Interface
 
-Entries are similar to the [interface](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceElementTiming) for element-timing:
+The returned objects will take the following shape
 
-- `duration` - Always returns 0 as duration does not apply to this interface.
-- `entryType` - `container-element` for entries which happen on container elements
-- `name` - Returns `image-paint` for images and `text-paint` for text. This data will come from the most recent paint entry within this container.
-- `naturalHeight` - Always returns 0 for now as this is for image elements
-- `naturalWidth` - Always returns 0 for now as this is for image elements
-- `intersectionRect` - The smallest rectangle covering the sub elements painted
-- `size` - The size of the painted rectangle within this container returned as the area (width \* height).
-- `startTime` - Returns the start time of the first paint within this container, once this value is set it does not change, even if there are subsequent entries later on.
-- `element` - An Element representing the element we are returning information about.
-- `id` - A string which is the `id` of the element
-- `identifier` - A string which is the value of the elementtiming attribute on the element.
-- `renderTime` - A DOMHighResTimeStamp with the renderTime of the sub element which had the most recent paint.
-- `lastPaintedSubElement` - A reference to the sub element which had the most recent paint.
+- `size` - The size of the painted rectangle within this container returned as the area (width \* height). This is achieved by adding together all the non-overlapping painted elements.
+- `identifier` - A string which is the value of the containertiming attribute on the element.
+- `lastPaintedSubElement` - This is the last element to be painted within this container ("aggregatePaint" mode only)
+- `largestContentfulPaint`
+  - `size` - The size of the candidate element which is the largest within this container
+  - `element` - A reference to the candidate element itself
+- `firstContentfulPaint`
+  - `renderTime` - The time this element was painted
+  - `element` - A reference to the element first painted in this container
+- `startTime` - Time of the first paint in this container
+- `visuallyCompletePaint`
+  - `renderTime` - The time of the last non-overlapping element to paint
+  - `lastPaintedSubElement` - A reference to the last painted element within this container
 
 ## Examples
 
@@ -141,40 +131,28 @@ This can be useful if the inner container is unrelated to your content and you d
 This is similar to ignore above, but will still account for any changes happening in the inner-container, as though the boundary never existed in the first place. From the perspective the inner-container attribute has no effect.
 The inner container will continue to receive its events like normal
 
-### `shadowed`
-
-This mode is similar to the above except the values received by the outer container are set to the inner-container's root. For example: If there is an Largest Contentful Paint event happening within the inner container, both containers would receive the entry, but the outer container would receive the inner-container's root as the element.
-
-This is useful if you only care about tracking the inner container as a whole, but are not interested in its implementation.
-
 ## Debug Mode
 
 You can set a global `ctDebug` flag to true in order to see paint rectangles from the collection of paints when a container has updated.
 (set `window.ctDebug` or `globalThis.ctDebug` to true)
 
-## Update 22/02/2024
-
-Due to some applications loading containers before the contents within that container, its impossible to know the difference between a single element and a container holding elements when this plugin starts. Up until this point we've been using the selector `[elementtiming]:has(*)` but because some applications start with their containers empty e.g:
-
-```html
-<div class="container" elementtiming>
-  <!-- Some stuff will go here -->
-</div>
-```
-
-the polyfill won't be able to identify these. So instead it may make sense to have a separate attribute to aid in finding containers, for now I will call this `containertiming`. The developer can mark containers which should have timing with this attribute instead of `elementtiming`.
-
 ## Performance Impact of a native implementation
 
 See [Performance Impact](./performance-impact.md)
 
-### Recursive iteration of new DOM elements is needed
-
-If a subtree is injected into the DOM along with child elements, those child elements [won't be picked up](https://stackoverflow.com/questions/61314922/mutationobserver-not-picking-up-on-child-nodes) by the mutationObserver. This means we can miss out on new containers being injected if we don't recurse through each new entry.
-
-In order to alleviate this issue we need to recourse through every child of every new DOM Node inserted.
-
 ## FAQs
+
+### Why can't we just use the `elementtiming` attribute on containers like divs?
+
+Due to some applications rendering containers before the contents within that container, its impossible to know the difference between a single element and a container holding no elements when this plugin starts. We tried using `[elementtiming]:has(*)` but because some applications start with their containers empty e.g:
+
+```html
+<div class="container" elementtiming>
+  <!-- Some stuff will be injected here -->
+</div>
+```
+
+The polyfill won't be able to identify these. So instead we opted to have a separate attribute to aid in finding containers; `containertiming`.
 
 ### Should the user know how much has painted?
 

@@ -17,9 +17,7 @@ window.setTimeout(() => {
 }, 5000);
 
 window.setTimeout(() => {
-  console.log("something");
   const changingCell = document.querySelector("#cell-change");
-  console.log(changingCell);
   const newCell = document.createElement("div");
   newCell.classList.add("cell");
   newCell.textContent = "80.81";
