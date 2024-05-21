@@ -245,10 +245,6 @@ class ContainerPerformanceObserver {
     this.nativePerformanceObserver.disconnect();
   }
 
-  takeRecords() {
-    return this.nativePerformanceObserver.takeRecords();
-  }
-
   /**
    *  This algorithm collects the paints which have happened within the nearest container and emits the largest rectangle
    *  that is the union of all painted elements. Due to the nature of the underlying `element-timing` algorithm only new areas
@@ -326,16 +322,11 @@ class ContainerPerformanceObserver {
       };
     }
 
-    // Check for overlaps
-    let overlap = false;
-    resolvedRootData.paintedRects.forEach((rect) => {
+    // TODO: We should look into better ways to combine rectangles or detect overlapping rectangles such as R-Tree or Quad Tree algorithms
+    for (const rect of resolvedRootData.paintedRects) {
       if (ContainerPerformanceObserver.overlaps(entry.intersectionRect, rect)) {
-        overlap = true;
+        return;
       }
-    });
-
-    if (overlap) {
-      return;
     }
 
     resolvedRootData.renderTime = entry.renderTime;
