@@ -287,7 +287,7 @@ class ContainerPerformanceObserver {
 
     // Because we've updated a container we should mark it as updated so we can return it with the list
     containerRootUpdates.add(closestRoot);
-    lastResolvedData.intersectionRect = newRect;
+    // lastResolvedData.intersectionRect = newRect;
 
     // If nested update any parents
     this.updateParentIfExists(closestRoot);
@@ -423,14 +423,14 @@ class ContainerPerformanceObserver {
    */
   callbackWrapper(list: PerformanceObserverEntryList) {
     // Reset coordData for each container
-    containerRootDataMap.forEach((val) => {
-      val.coordData = null;
-    });
+    // containerRootDataMap.forEach((val) => {
+    //   val.coordData = null;
+    // });
 
     // Have any containers been updated?
     containerRootUpdates.clear();
 
-    // Reset last resolved data state
+    // Reset last resolved data state, we want to re-use coordinate and size if aggregated
     lastResolvedData = { paintedRects: new Set() };
 
     const processEntries = (entry: PerformanceEntry): void => {
@@ -499,10 +499,10 @@ class ContainerPerformanceObserver {
             ContainerPerformanceObserver.paintDebugOverlay(rects);
             return;
           }
-          if (lastResolvedData.intersectionRect) {
+          if (resolvedRootData?.intersectionRect) {
             // debug mode shows the painted rectangles
             ContainerPerformanceObserver.paintDebugOverlay(
-              lastResolvedData.intersectionRect,
+              resolvedRootData.intersectionRect,
             );
           }
         }
