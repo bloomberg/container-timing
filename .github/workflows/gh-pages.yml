@@ -30,8 +30,9 @@ jobs:
         with:
           node-version: 21
       - name: Install & build TypeScript
-        run: npm ci
-        run: npm run build
+        run: |
+          npm ci
+          npm run build
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
