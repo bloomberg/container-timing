@@ -1,3 +1,5 @@
+const native_implementation_available = ("PerformanceContainerTiming" in window);
+
 // https://wicg.github.io/element-timing/#performanceelementtiming
 interface PerformanceElementTiming extends PerformanceEntry {
   name: string;
@@ -82,19 +84,25 @@ const mutationObserverCallback = (mutationList: MutationRecord[]) => {
   }
 };
 
+
 // Wait until the DOM is ready then start collecting elements needed to be timed.
-document.addEventListener("DOMContentLoaded", () => {
-  mutationObserver = new window.MutationObserver(mutationObserverCallback);
+if (!native_implementation_available) {
+  console.debug("Enabling polyfill")
+  document.addEventListener("DOMContentLoaded", () => {
+    mutationObserver = new window.MutationObserver(mutationObserverCallback);
 
-  const config = { attributes: false, childList: true, subtree: true };
-  mutationObserver.observe(document, config);
+    const config = { attributes: false, childList: true, subtree: true };
+    mutationObserver.observe(document, config);
 
-  const elms = document.querySelectorAll(containerTimingAttrSelector);
-  elms.forEach((elm) => {
-    containerRoots.add(elm);
-    ContainerPerformanceObserver.setDescendants(elm);
+    const elms = document.querySelectorAll(containerTimingAttrSelector);
+    elms.forEach((elm) => {
+      containerRoots.add(elm);
+      ContainerPerformanceObserver.setDescendants(elm);
+    });
   });
-});
+} else {
+  console.debug("Native implementation of Container Timing available")
+}
 
 class PerformanceContainerTiming implements PerformanceEntry {
   entryType = "container";
@@ -504,4 +512,6 @@ class ContainerPerformanceObserver implements PerformanceObserver {
   }
 }
 
-window.PerformanceObserver = ContainerPerformanceObserver;
+if (!native_implementation_available) {
+  window.PerformanceObserver = ContainerPerformanceObserver;
+}

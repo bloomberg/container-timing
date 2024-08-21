@@ -1,16 +1,13 @@
 window.ctDebug = true;
-// const observer = new ContainerPerformanceObserver((list) => {
-//   list.getEntries().forEach((entry) => {
-//     console.log(entry);
-//   });
-// });
+const queryString = window.location.search;
+const urlParams = new URLSearchParams(window.location.search);
+const nestedStrategy = urlParams.get("nestedStrategy") || "ignore"
 
 const nativeObserver = new PerformanceObserver((v) => {
   console.log(v.getEntries());
 });
 
-nativeObserver.observe({ entryTypes: ["container"] });
-// observer.observe({ nestedStrategy: "transparent" });
+nativeObserver.observe({ type: "container", nestedStrategy: nestedStrategy });
 
 window.setTimeout(() => {
   const innerContainer = document.querySelector(".container div");
