@@ -1,6 +1,6 @@
+// https://wicg.github.io/element-timing/#performanceelementtiming
 interface PerformanceElementTiming extends PerformanceEntry {
   name: string;
-  lastPaintedSubElement: Element | null;
   intersectionRect: DOMRectReadOnly;
   naturalHeight: number;
   naturalWidth: number;
@@ -12,27 +12,24 @@ interface PerformanceElementTiming extends PerformanceEntry {
   size: number;
 }
 
-interface PerformanceContainerTiming {
-  intersectionRect: DOMRectReadOnly | undefined;
-  renderTime?: number;
-  firstContentfulPaint: { renderTime: number; element: Element | null } | null;
-  visuallyCompletePaint?: any;
+interface PerformanceContainerTiming extends PerformanceEntry {
+  firstRenderTime: number;
   identifier: string | null;
   lastPaintedSubElement?: Element | null;
   size: number;
   startTime: number;
-  largestContentfulPaint: { size: number; element: Element | null } | null;
 }
 interface ResolvedRootData extends PerformanceContainerTiming {
   /** Keep track of all the paintedRects */
   paintedRects: Set<DOMRectReadOnly>;
   /** For aggregated paints keep track of the union painted rect */
   coordData?: any;
+  /** For aggregated paints keep track of the union painted rect */
+  batchCoordData?: any;
 }
 
 type ObserveOptions = {
-  nestedStrategy: "ignore" | "transparent";
-  method: "aggregatedPaints" | "newAreaPainted";
+  nestedStrategy: "ignore" | "transparent" | "shadowed";
 };
 
 // We need to set the element timing attribute tag on all elements below "containertiming" before we can start observing
@@ -117,7 +114,6 @@ document.addEventListener("DOMContentLoaded", () => {
 class ContainerPerformanceObserver {
   nativePerformanceObserver: PerformanceObserver;
   debug: boolean;
-  method: ObserveOptions["method"] = "newAreaPainted";
   nestedStrategy: ObserveOptions["nestedStrategy"] = "ignore";
   callback: (list: {
     getEntries: () => PerformanceContainerTiming[];
@@ -181,14 +177,15 @@ class ContainerPerformanceObserver {
     const resolvedRootData: ResolvedRootData = containerRootDataMap.get(
       container,
     ) ?? {
+      entryType: "container",
+      name: "",
+      duration: 0,
       paintedRects: new Set(),
       identifier: "",
-      intersectionRect: new DOMRectReadOnly(),
-      renderTime: 0,
       size: 0,
       startTime: 0,
-      largestContentfulPaint: null,
-      firstContentfulPaint: null,
+      firstRenderTime: 0,
+      toJSON: () => {},
     };
 
     return resolvedRootData;
@@ -236,61 +233,12 @@ class ContainerPerformanceObserver {
   }
 
   observe(options: ObserveOptions) {
-    this.method = options.method;
     this.nestedStrategy = options.nestedStrategy;
     this.nativePerformanceObserver.observe({ type: "element", buffered: true });
   }
 
   disconnect() {
     this.nativePerformanceObserver.disconnect();
-  }
-
-  /**
-   *  This algorithm collects the paints which have happened within the nearest container and emits the largest rectangle
-   *  that is the union of all painted elements. Due to the nature of the underlying `element-timing` algorithm only new areas
-   *  should be painted unless the DOM elements have been swapped out in various positions.
-   */
-  aggregatedPaints(entry: PerformanceElementTiming, closestRoot: Element) {
-    const resolvedRootData =
-      ContainerPerformanceObserver.getResolvedDataFromContainerRoot(
-        closestRoot,
-      );
-    const coordData = resolvedRootData.coordData ?? {
-      // Calculate the smallest rectangle that contains a union of all nodes which were painted in this container
-      // Keep track of the smallest/largest painted rectangles as we go through them in filterEnt
-      minX: Number.MAX_SAFE_INTEGER,
-      minY: Number.MAX_SAFE_INTEGER,
-      maxX: Number.MIN_SAFE_INTEGER,
-      maxY: Number.MIN_SAFE_INTEGER,
-    };
-    coordData.minX = Math.min(coordData.minX, entry.intersectionRect.left);
-    coordData.minY = Math.min(coordData.minY, entry.intersectionRect.top);
-    coordData.maxX = Math.max(coordData.maxX, entry.intersectionRect.right);
-    coordData.maxY = Math.max(coordData.maxY, entry.intersectionRect.bottom);
-    const width = coordData.maxX - coordData.minX;
-    const height = coordData.maxY - coordData.minY;
-    const newRect = new DOMRectReadOnly(
-      coordData.minX,
-      coordData.minY,
-      width,
-      height,
-    );
-
-    // This is an elementtiming we added rather than one which was there initially, remove it and grab the data
-    resolvedRootData.renderTime = entry.renderTime;
-    resolvedRootData.lastPaintedSubElement = entry.element;
-    resolvedRootData.startTime ||= entry.startTime;
-    resolvedRootData.intersectionRect = newRect;
-    resolvedRootData.size = width * height;
-    resolvedRootData.coordData = coordData;
-    containerRootDataMap.set(closestRoot, resolvedRootData);
-
-    // Because we've updated a container we should mark it as updated so we can return it with the list
-    containerRootUpdates.add(closestRoot);
-    // lastResolvedData.intersectionRect = newRect;
-
-    // If nested update any parents
-    this.updateParentIfExists(closestRoot);
   }
 
   /**
@@ -306,20 +254,10 @@ class ContainerPerformanceObserver {
     const incomingEntrySize = ContainerPerformanceObserver.size(
       entry.intersectionRect,
     );
-    const currentContainerSize =
-      resolvedRootData.largestContentfulPaint?.size ?? 0;
 
     // There's a weird bug where we sometimes get a load of empty rects (all zero'd out)
     if (ContainerPerformanceObserver.isEmptyRect(entry.intersectionRect)) {
       return;
-    }
-
-    // We need to keep track of LCP so grab the size
-    if (incomingEntrySize > currentContainerSize) {
-      resolvedRootData.largestContentfulPaint = {
-        size: incomingEntrySize,
-        element: entry.element,
-      };
     }
 
     // TODO: We should look into better ways to combine rectangles or detect overlapping rectangles such as R-Tree or Quad Tree algorithms
@@ -329,17 +267,13 @@ class ContainerPerformanceObserver {
       }
     }
 
-    resolvedRootData.renderTime = entry.renderTime;
     resolvedRootData.lastPaintedSubElement = entry.element;
-    resolvedRootData.startTime ||= entry.startTime;
-    resolvedRootData.intersectionRect = undefined;
+    resolvedRootData.startTime = entry.renderTime;
     resolvedRootData.paintedRects?.add(entry.intersectionRect);
+    // size won't be super accurate as it doesn't take into account overlaps
     resolvedRootData.size += incomingEntrySize;
     resolvedRootData.identifier ||= closestRoot.getAttribute("containertiming");
-    resolvedRootData.firstContentfulPaint ??= {
-      renderTime: entry.renderTime,
-      element: entry.element,
-    };
+    resolvedRootData.firstRenderTime ||= entry.renderTime;
 
     // Update States
     containerRootDataMap.set(closestRoot, resolvedRootData);
@@ -369,33 +303,21 @@ class ContainerPerformanceObserver {
     const resolvedParentData =
       ContainerPerformanceObserver.getResolvedDataFromContainerRoot(parentRoot);
 
-    const rLcp = resolvedData.largestContentfulPaint?.size ?? 0;
-    const rpLcp = resolvedParentData.largestContentfulPaint?.size ?? 0;
+    const rFRT = resolvedData.firstRenderTime ?? Infinity;
+    const rpFRT = resolvedParentData.firstRenderTime ?? Infinity;
 
-    const rFcp = resolvedData.firstContentfulPaint?.renderTime ?? Infinity;
-    const rpFcp =
-      resolvedParentData.firstContentfulPaint?.renderTime ?? Infinity;
+    const rST = resolvedData.startTime ?? 0;
+    const rpST = resolvedParentData.startTime ?? 0;
 
-    const rrt = resolvedData.renderTime ?? 0;
-    const rprt = resolvedParentData.renderTime ?? 0;
-
-    // Check LCP, if there's a larger LCP we should promote it upwards
-    if (rLcp > rpLcp) {
-      resolvedParentData.largestContentfulPaint =
-        resolvedData.largestContentfulPaint;
-      containerRootUpdates.add(parentRoot);
-    }
-
-    // Check FCP, if there's a faster time we should promote it upwards
-    if (rFcp < rpFcp) {
-      resolvedParentData.firstContentfulPaint =
-        resolvedData.firstContentfulPaint;
+    // Check firstRenderTime, if there's a faster time we should promote it upwards
+    if (rFRT < rpFRT) {
+      resolvedParentData.firstRenderTime = resolvedData.firstRenderTime;
       containerRootUpdates.add(parentRoot);
     }
 
     // Check Visually Complete
-    if (rrt > rprt) {
-      resolvedData.renderTime = resolvedParentData.renderTime;
+    if (rST > rpST) {
+      resolvedData.startTime = resolvedParentData.startTime;
       containerRootUpdates.add(parentRoot);
     }
   }
@@ -423,9 +345,9 @@ class ContainerPerformanceObserver {
    */
   callbackWrapper(list: PerformanceObserverEntryList) {
     // Reset coordData for each container
-    // containerRootDataMap.forEach((val) => {
-    //   val.coordData = null;
-    // });
+    containerRootDataMap.forEach((val) => {
+      val.batchCoordData = null;
+    });
 
     // Have any containers been updated?
     containerRootUpdates.clear();
@@ -451,14 +373,7 @@ class ContainerPerformanceObserver {
         element.getAttribute("elementtiming") === INTERNAL_ATTR_NAME &&
         closestRoot
       ) {
-        if (this.method === "aggregatedPaints") {
-          this.aggregatedPaints(entry as PerformanceElementTiming, closestRoot);
-        } else {
-          this.emitNewAreaPainted(
-            entry as PerformanceElementTiming,
-            closestRoot,
-          );
-        }
+        this.emitNewAreaPainted(entry as PerformanceElementTiming, closestRoot);
       }
     };
 
@@ -472,39 +387,22 @@ class ContainerPerformanceObserver {
         if (!resolvedRootData) {
           return;
         }
-        const containerCandidate: PerformanceContainerTiming = {
-          intersectionRect: resolvedRootData.intersectionRect,
-          size: resolvedRootData.size,
-          renderTime: resolvedRootData.renderTime,
-          identifier: resolvedRootData.identifier,
-          lastPaintedSubElement: resolvedRootData.lastPaintedSubElement,
-          largestContentfulPaint: resolvedRootData.largestContentfulPaint,
-          firstContentfulPaint: resolvedRootData.firstContentfulPaint,
+        const containerCandidate: any = {
+          entryType: "container",
+          name: "",
           startTime: resolvedRootData.startTime,
+          identifier: resolvedRootData.identifier,
+          duration: 0,
+          firstRenderTime: resolvedRootData.firstRenderTime,
+          size: resolvedRootData.size,
+          lastPaintedSubElement: resolvedRootData.lastPaintedSubElement,
         };
-
-        if (this.method === "newAreaPainted") {
-          containerCandidate.renderTime = undefined;
-          containerCandidate.visuallyCompletePaint = {
-            renderTime: resolvedRootData.renderTime,
-            lastPaintedSubElement: resolvedRootData.lastPaintedSubElement,
-          };
-        }
 
         containerEntries.push(containerCandidate);
 
         if (this.debug) {
-          if (this.method === "newAreaPainted") {
-            const rects = lastResolvedData?.paintedRects;
-            ContainerPerformanceObserver.paintDebugOverlay(rects);
-            return;
-          }
-          if (resolvedRootData?.intersectionRect) {
-            // debug mode shows the painted rectangles
-            ContainerPerformanceObserver.paintDebugOverlay(
-              resolvedRootData.intersectionRect,
-            );
-          }
+          const rects = lastResolvedData?.paintedRects;
+          ContainerPerformanceObserver.paintDebugOverlay(rects);
         }
       });
 

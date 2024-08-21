@@ -5,7 +5,12 @@ const observer = new ContainerPerformanceObserver((list) => {
   });
 });
 
-observer.observe({ method: "newAreaPainted", nestedStrategy: "transparent" });
+const nativeObserver = new PerformanceObserver((v) => {
+  console.log(v);
+});
+
+nativeObserver.observe({ entryTypes: ["container"] });
+observer.observe({ nestedStrategy: "transparent" });
 
 window.setTimeout(() => {
   const innerContainer = document.querySelector(".container div");

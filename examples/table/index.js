@@ -16,8 +16,11 @@ window.setTimeout(() => {
 window.setTimeout(() => {
   const changingCell = document.querySelector("#cell-change");
   const newCell = document.createElement("div");
-  newCell.classList.add("cell");
+  newCell.classList.add("cell", "glow");
   newCell.textContent = "80.81";
   newCell.style = "text-align: right; left: 1084px; width: 205px";
   changingCell.parentElement.replaceChild(newCell, changingCell);
+  window.setTimeout(() => {
+    newCell.classList.remove("glow");
+  }, 1000);
 }, 10000);

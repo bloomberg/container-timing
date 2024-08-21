@@ -17,6 +17,12 @@ html {
   bottom: 0;
   white-space: nowrap;
   overflow: initial;
+  transition: "color 1s";
+}
+
+.glow {
+  transition: "color 1s";
+  color: red;
 }
 
 .row {

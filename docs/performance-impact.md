@@ -127,8 +127,8 @@ We will also keep an eye on the [TodoMVC React Complex DOM](https://github.com/W
 | --- | ------------- | ------------ |
 | 1   | 17.22         | 22.86        |
 | 2   | 17.27         | 28.21        |
-| 3   | 28.98         | 17.24        |
-| Avg | 21.16         | 22.77        |
+| 3   | 17.24         | 28.98        |
+| Avg | 17.24         | 26.68        |
 
 ![speedometer-test](./docs/speedometer-test.png)
 
