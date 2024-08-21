@@ -24,8 +24,6 @@ interface ResolvedRootData extends PerformanceContainerTiming {
   paintedRects: Set<DOMRectReadOnly>;
   /** For aggregated paints keep track of the union painted rect */
   coordData?: any;
-  /** For aggregated paints keep track of the union painted rect */
-  batchCoordData?: any;
 }
 
 type ObserveOptions = {
@@ -344,12 +342,7 @@ class ContainerPerformanceObserver {
    * @param {PerformanceObserverEntryList} list
    */
   callbackWrapper(list: PerformanceObserverEntryList) {
-    // Reset coordData for each container
-    containerRootDataMap.forEach((val) => {
-      val.batchCoordData = null;
-    });
-
-    // Have any containers been updated?
+    // Use this to keep track of container updates, clear it after each paint batch
     containerRootUpdates.clear();
 
     // Reset last resolved data state, we want to re-use coordinate and size if aggregated

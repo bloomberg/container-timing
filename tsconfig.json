@@ -9,5 +9,5 @@
     "lib": ["DOM", "ES2023"],
     "sourceMap": true
   },
-  "files": ["./polyfill.ts"]
+  "files": ["polyfill/polyfill.ts"]
 }
