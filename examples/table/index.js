@@ -1,11 +1,11 @@
 window.ctDebug = true;
-const observer = new ContainerPerformanceObserver((list) => {
+const observer = new PerformanceObserver((list) => {
   list.getEntries().forEach((entry) => {
     console.log(entry);
   });
 });
 
-observer.observe({ method: "newAreaPainted" });
+observer.observe({ type: "container" });
 
 window.setTimeout(() => {
   document.querySelectorAll(".dynupdate").forEach((elm) => {

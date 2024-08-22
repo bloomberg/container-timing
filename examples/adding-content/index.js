@@ -1,16 +1,16 @@
 window.ctDebug = true;
-const observer = new ContainerPerformanceObserver((list) => {
-  list.getEntries().forEach((entry) => {
-    console.log(entry);
-  });
-});
+// const observer = new ContainerPerformanceObserver((list) => {
+//   list.getEntries().forEach((entry) => {
+//     console.log(entry);
+//   });
+// });
 
 const nativeObserver = new PerformanceObserver((v) => {
-  console.log(v);
+  console.log(v.getEntries());
 });
 
 nativeObserver.observe({ entryTypes: ["container"] });
-observer.observe({ nestedStrategy: "transparent" });
+// observer.observe({ nestedStrategy: "transparent" });
 
 window.setTimeout(() => {
   const innerContainer = document.querySelector(".container div");

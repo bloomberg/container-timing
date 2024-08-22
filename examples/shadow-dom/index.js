@@ -4,7 +4,7 @@ const observer = new PerformanceObserver((list) => {
   });
 });
 
-observer.observe({ type: "element", buffered: true });
+observer.observe({ entryTypes: ["container"] });
 
 window.setTimeout(() => {
   const host = document.querySelector("#host");

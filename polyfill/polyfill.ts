@@ -12,13 +12,6 @@ interface PerformanceElementTiming extends PerformanceEntry {
   size: number;
 }
 
-interface PerformanceContainerTiming extends PerformanceEntry {
-  firstRenderTime: number;
-  identifier: string | null;
-  lastPaintedSubElement?: Element | null;
-  size: number;
-  startTime: number;
-}
 interface ResolvedRootData extends PerformanceContainerTiming {
   /** Keep track of all the paintedRects */
   paintedRects: Set<DOMRectReadOnly>;
@@ -26,9 +19,7 @@ interface ResolvedRootData extends PerformanceContainerTiming {
   coordData?: any;
 }
 
-type ObserveOptions = {
-  nestedStrategy: "ignore" | "transparent" | "shadowed";
-};
+type NestedStrategy = "ignore" | "transparent" | "shadowed";
 
 // We need to set the element timing attribute tag on all elements below "containertiming" before we can start observing
 // Otherwise no elements will be observed
@@ -46,6 +37,7 @@ let lastResolvedData: Partial<{
   intersectionRect: DOMRectReadOnly;
 }>;
 
+let mutationObserver;
 const mutationObserverCallback = (mutationList: MutationRecord[]) => {
   const findContainers = (parentNode: Element) => {
     // We've found a container
@@ -92,9 +84,7 @@ const mutationObserverCallback = (mutationList: MutationRecord[]) => {
 
 // Wait until the DOM is ready then start collecting elements needed to be timed.
 document.addEventListener("DOMContentLoaded", () => {
-  const mutationObserver = new window.MutationObserver(
-    mutationObserverCallback,
-  );
+  mutationObserver = new window.MutationObserver(mutationObserverCallback);
 
   const config = { attributes: false, childList: true, subtree: true };
   mutationObserver.observe(document, config);
@@ -106,24 +96,53 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
+class PerformanceContainerTiming implements PerformanceEntry {
+  entryType = "container";
+  name = "";
+  duration = 0;
+  startTime: number;
+  identifier: string | null;
+  firstRenderTime: number;
+  size: number;
+  lastPaintedElement: Element | null;
+
+  constructor(
+    startTime: number,
+    identifier: string | null,
+    size: number,
+    firstRenderTime: number,
+    lastPaintedElement: Element | null,
+  ) {
+    this.identifier = identifier;
+    this.size = size;
+    this.startTime = startTime;
+    this.firstRenderTime = firstRenderTime;
+    this.lastPaintedElement = lastPaintedElement;
+  }
+
+  toJSON(): void {}
+}
+
 /**
  * Container Performance Observer is a superset of Performance Observer which can augment element-timing to work on containers
  */
-class ContainerPerformanceObserver {
+class ContainerPerformanceObserver implements PerformanceObserver {
   nativePerformanceObserver: PerformanceObserver;
+  // Debug flag to show overlays
   debug: boolean;
-  nestedStrategy: ObserveOptions["nestedStrategy"] = "ignore";
-  callback: (list: {
-    getEntries: () => PerformanceContainerTiming[];
-  }) => PerformanceContainerTiming[];
+  // Which nested strategy is set
+  nestedStrategy: NestedStrategy = "ignore";
+  // We need to know if element timing has been explicitly set or not
+  overrideElementTiming: boolean = false;
+  // is container timing being used or should we just passthrough to the native polyfill
+  polyfillEnabled: boolean = false;
+  // We need to keep track of set entryTypes so we know whether to ignore element timing
+  entryTypes: string[] = [];
+  callback: PerformanceObserverCallback;
 
   static supportedEntryTypes = NativePerformanceObserver.supportedEntryTypes;
 
-  constructor(
-    callback: (list: {
-      getEntries: () => PerformanceContainerTiming[];
-    }) => PerformanceContainerTiming[],
-  ) {
+  constructor(callback: PerformanceObserverCallback) {
     this.nativePerformanceObserver = new NativePerformanceObserver(
       this.callbackWrapper.bind(this),
     );
@@ -183,6 +202,7 @@ class ContainerPerformanceObserver {
       size: 0,
       startTime: 0,
       firstRenderTime: 0,
+      lastPaintedElement: null,
       toJSON: () => {},
     };
 
@@ -230,9 +250,51 @@ class ContainerPerformanceObserver {
     }, 2000);
   }
 
-  observe(options: ObserveOptions) {
-    this.nestedStrategy = options.nestedStrategy;
-    this.nativePerformanceObserver.observe({ type: "element", buffered: true });
+  takeRecords(): PerformanceEntryList {
+    const list = this.nativePerformanceObserver.takeRecords();
+
+    // Don't expose element timing records if the user didn't ask for them
+    if (this.overrideElementTiming) {
+      return list.filter((entry) => entry.entryType !== "element");
+    }
+
+    return list;
+  }
+
+  observe(
+    options?: PerformanceObserverInit & { nestedStrategy: NestedStrategy },
+  ) {
+    const hasOption = (name: string, options?: PerformanceObserverInit) =>
+      options?.entryTypes?.includes(name) || options?.type === name;
+
+    if (hasOption("container", options)) {
+      this.polyfillEnabled = true;
+      let resolvedTypes = options?.type
+        ? [options?.type]
+        : options?.entryTypes ?? [];
+
+      // Remove "container" before passing down into PerfObserver
+      resolvedTypes = resolvedTypes.filter((type) => type !== "container");
+
+      if (!hasOption("element", options)) {
+        this.overrideElementTiming = true;
+        resolvedTypes = resolvedTypes.concat("element");
+      }
+
+      this.entryTypes = resolvedTypes;
+      this.nestedStrategy ??= options?.nestedStrategy || "ignore";
+      // If we only have 1 type its preferred to use the type property, otherwise use entryTypes
+      // This is to make sure buffered still works when we only have "elmeent" set.
+      this.nativePerformanceObserver.observe({
+        type: resolvedTypes.length === 1 ? resolvedTypes[0] : undefined,
+        entryTypes: resolvedTypes.length > 1 ? resolvedTypes : undefined,
+        buffered: resolvedTypes.length === 1 ? true : undefined,
+      });
+      return;
+    }
+
+    // We're just using the observer as normal
+    this.nativePerformanceObserver.observe(options);
   }
 
   disconnect() {
@@ -265,8 +327,8 @@ class ContainerPerformanceObserver {
       }
     }
 
-    resolvedRootData.lastPaintedSubElement = entry.element;
-    resolvedRootData.startTime = entry.renderTime;
+    resolvedRootData.lastPaintedElement = entry.element;
+    resolvedRootData.startTime = entry.startTime; // For images this will either be the load time or render time
     resolvedRootData.paintedRects?.add(entry.intersectionRect);
     // size won't be super accurate as it doesn't take into account overlaps
     resolvedRootData.size += incomingEntrySize;
@@ -337,6 +399,15 @@ class ContainerPerformanceObserver {
     return rect.width * rect.height;
   }
 
+  // This polyfill uses element timing, but we don't leak that back to the user unless intended
+  filterEntryList(list: PerformanceEntryList): PerformanceEntryList {
+    if (this.overrideElementTiming) {
+      return list.filter((entry) => entry.entryType !== "element");
+    } else {
+      return list;
+    }
+  }
+
   /**
    * This will wrap the callback and add extra fields for container elements
    * @param {PerformanceObserverEntryList} list
@@ -380,16 +451,13 @@ class ContainerPerformanceObserver {
         if (!resolvedRootData) {
           return;
         }
-        const containerCandidate: any = {
-          entryType: "container",
-          name: "",
-          startTime: resolvedRootData.startTime,
-          identifier: resolvedRootData.identifier,
-          duration: 0,
-          firstRenderTime: resolvedRootData.firstRenderTime,
-          size: resolvedRootData.size,
-          lastPaintedSubElement: resolvedRootData.lastPaintedSubElement,
-        };
+        const containerCandidate: any = new PerformanceContainerTiming(
+          resolvedRootData.startTime,
+          resolvedRootData.identifier,
+          resolvedRootData.size,
+          resolvedRootData.firstRenderTime,
+          resolvedRootData.lastPaintedElement,
+        );
 
         containerEntries.push(containerCandidate);
 
@@ -405,10 +473,35 @@ class ContainerPerformanceObserver {
     list.getEntries().forEach(processEntries);
     const containers = fetchUpdatedContainers();
 
-    const syntheticList = {
-      getEntries: () => containers,
+    const syntheticList: PerformanceObserverEntryList = {
+      getEntries: () => {
+        const defaultEntries = this.filterEntryList(list.getEntries());
+        return defaultEntries.concat(containers);
+      },
+      getEntriesByName: (name, type) => {
+        const defaultEntries = this.filterEntryList(
+          list.getEntriesByName(name, type),
+        );
+        if (type === "container") {
+          defaultEntries.concat(containers);
+        }
+
+        return defaultEntries;
+      },
+      getEntriesByType: (type) => {
+        const defaultEntries = this.filterEntryList(
+          list.getEntriesByType(type),
+        );
+        if (type === "container") {
+          defaultEntries.concat(containers);
+        }
+
+        return defaultEntries;
+      },
     };
 
-    this.callback(syntheticList);
+    this.callback(syntheticList, this);
   }
 }
+
+window.PerformanceObserver = ContainerPerformanceObserver;

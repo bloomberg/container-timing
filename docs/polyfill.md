@@ -1,8 +1,23 @@
 ## Container Timing: Polyfill
 
-This polyfill should be loaded in the head or as early as possible so it can annotate elements needed for timing when the observer runs. At the very latest it should be loaded before you make the call to initiate the observer.
+This polyfill simulates Container Timing in your browser, it relies heavily on element-timing internally which means as of this writing it only works on Chromium-based browsers.
 
-Once added to the top of your page you can then use the `ContainerPerformanceObserver` to mark entries. The `ContainerPerformanceObserver` behaves very similarly to the `PerformanceObserver` but is only useful for this specific metric. You will also need to mark containers you're interested in tracking with the `containertiming` attribute (See [update below](#update-22022024)), just like you would on individual elements. See the example below:
+This will need to be loaded in the head or as early as possible so that it can override the built-in PerformanceObserver and mark elements needing to be timed (those underneath a `containertiming` attribute).
+
+Once added, you can mark containers you're interested in with the `containertiming` attribute and use the `container` entryType in the PerformanceObserver. You can also see the examples folder for an idea on how to use the polyfill.
+
+## Setup
+
+Right now this polyfill is not on npm, so you will need to build and run locally. Go to the polyfill directory then run these steps:
+
+- `npm i`
+- `npm run build`
+- Open up one of the example html files
+- Check the dev tools console
+
+## Demo
+
+![img](../docs/img/container-timing-demo.gif)
 
 **Markup**
 

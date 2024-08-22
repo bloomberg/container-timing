@@ -5,6 +5,6 @@ const observer = new PerformanceObserver((list) => {
 });
 
 observer.observe({
-  entryTypes: ["element", "paint", "largest-contentful-paint"],
+  entryTypes: ["element", "paint", "largest-contentful-paint", "container"],
   buffered: true,
 });
