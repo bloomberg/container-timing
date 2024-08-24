@@ -8,18 +8,18 @@
 ## Introduction
 
 The Container Timing API enables monitoring when annotated sections of the DOM are displayed on screen and have finished their initial paint.
-A developer will have the ability to mark subsections of the DOM with the `containertiming` attribute (similar to element-timing) and receive performance entries when that section has been painted for the first time. This API will allow developers to measure the timing of various components in their pages.
+A developer will have the ability to mark subsections of the DOM with the `containertiming` attribute (similar to `elementtiming` for the [Element Timing API](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceElementTiming)) and receive performance entries when that section has been painted for the first time. This API will allow developers to measure the timing of various components in their pages.
 
-Unlike with element timing it is not possible for the renderer to know when a section of the DOM has finished painting (there could be future changes, asynchronous requests for new images, slow loading buttons etc), so this API will offer candidates in the form of new Performance Entries when there has been an update, the developer can choose to take the most recent entry or stop recording when there has been user interaction.
+Unlike with Element Timing it is not possible for the renderer to know when a section of the DOM has finished painting (there could be future changes, asynchronous requests for new images, slow loading buttons etc), so this API will offer candidates in the form of new Performance Entries when there has been an update, the developer can choose to take the most recent entry or stop recording when there has been user interaction.
 
 ## Motivation:
 
 As developers increasingly organise their applications into components there's becoming a demand to measure performance on sub sections of an application or a web page. For instance, [a developer wants to know](https://groups.google.com/g/web-vitals-feedback/c/TaQm0qq_kjs/m/z1AGXE0MBQAJ?utm_medium=email&utm_source=footer) when a subsection of the DOM has been painted, like a table or a widget so they can mark the paint time and submit it to their analytics.
 
-Current Web API's don't help with this. Element Timing will be [limited](https://w3c.github.io/paint-timing/#timing-eligible) due to what it can mark so it can't be used for whole sections. The polyfill referenced below does attempt to provide a userland solution by adding element timing to all elements within a container and using the data from those performance entries know when painting has finished, this does have several drawbacks though:
+Current Web API's don't help with this. Element Timing will be [limited](https://w3c.github.io/paint-timing/#timing-eligible) due to what it can mark so it can't be used for whole sections. The polyfill referenced below does attempt to provide a userland solution by adding Element Timing to all elements within a container and using the data from those performance entries know when painting has finished, this does have several drawbacks though:
 
-- Marking elements with the "elementtiming"attribute needs to happen as early as possible before painting happens, this will require server side changes or blocking rendering until all elements are marked (degrading performance)
-- A MutationObserver will need to be utilised to catch new elements (with elementtiming being set) being injected into the DOM
+- Marking elements with the `elementtiming` attribute needs to happen as early as possible before painting happens, this will require server side changes or blocking rendering until all elements are marked (degrading performance)
+- A [MutationObserver](https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver) needs to be utilised to catch new elements being injected into the DOM (with `elementtiming` being set) 
 - The polyfill will need to run and perform set up in the head of the page increasing the time to first paint.
 - Tracking of rectangles will need to be performed in userspace rather then the browsers built in 2D engine making it much less efficient
 
@@ -58,13 +58,13 @@ This is the preferred method of annotating container roots, as it gives develope
 
 Now we describe precisely what information is exposed via the WebPerf API. The PerformanceContainerTiming IDL attributes are defined as followed:
 
-- entryType: "container"
-- startTime: A [DOMHighResTimeStamp](https://developer.mozilla.org/en-US/docs/Web/API/DOMHighResTimeStamp) of the latest container paint time
-- identifier: The value of the element's containertiming attribute (empty string if it does not have it)
-- size: The size of the combined region painted (so far) within this container
-- firstRenderTime: A [DOMHighResTimeStamp](https://developer.mozilla.org/en-US/docs/Web/API/DOMHighResTimeStamp) of the first paint time for this container
-- duration: A [DOMHighResTimeStamp](https://developer.mozilla.org/en-US/docs/Web/API/DOMHighResTimeStamp) set to 0
-- lastPaintedElement: An [Element](https://dom.spec.whatwg.org/#concept-element) set to the last painted element (this may need to be a set of elements painted)
+- `entryType`: `"container"`
+- `startTime`: A [DOMHighResTimeStamp](https://developer.mozilla.org/en-US/docs/Web/API/DOMHighResTimeStamp) of the latest container paint time
+- `identifier`: The value of the element's containertiming attribute (empty string if it does not have it)
+- `size`: The size of the combined region painted (so far) within this container
+- `firstRenderTime`: A [DOMHighResTimeStamp](https://developer.mozilla.org/en-US/docs/Web/API/DOMHighResTimeStamp) of the first paint time for this container
+- `duration`: A [DOMHighResTimeStamp](https://developer.mozilla.org/en-US/docs/Web/API/DOMHighResTimeStamp) set to 0
+- `lastPaintedElement`: An [Element](https://dom.spec.whatwg.org/#concept-element) set to the last painted element (this may need to be a set of elements painted)
 
 ### Web IDL (subject to change)
 
@@ -154,7 +154,7 @@ Shadowed has the same concern as "transparent" (measuring everything below the `
 
 ### LCP Integration
 
-This is not intended to provide changes to the Largest Contentful Paint algorithm. Although in the future LCP could benefit from user-marks of content which are containers and receiving paint times from those to choose better candidates it's currently not in scope whether this will have any affect any on any existing browser metrics
+This is not intended to provide changes to the [Largest Contentful Paint](https://developer.mozilla.org/en-US/docs/Web/API/LargestContentfulPaint) algorithm. Although in the future LCP could benefit from user-marks of content which are containers and receiving paint times from those to choose better candidates it's currently not in scope whether this will have any affect any on any existing browser metrics
 
 ### Built-in containers
 
@@ -162,13 +162,13 @@ The changes here are also not going to add support to built in composite element
 
 ### Shadow DOM
 
-Currently element-timing [doesn't have support for Shadow DOM](https://github.com/WICG/element-timing/issues/3). There will need to be many architecture-decisions made on how the shadow dom interacts with element timing, (should it be opened up or closed, should individual elements be surfaced or just the shadow-host element). Once we have a good story for element-timing we can later have a proposal for container-timing too (which hopefully follows similar rules to the element-timing API).
+Currently Element Timing [doesn't have support for shadow DOM](https://github.com/WICG/element-timing/issues/3). There will need to be many architecture-decisions made on how the shadow DOM interacts with element timing, (should it be opened up or closed, should individual elements be surfaced or just the shadow host element). Once we have a good story for Element Timing we can later have a proposal for Container Timing too (which hopefully follows similar rules to the Element Timing API).
 
 ## Security and Privacy
 
 The cross-frame boundary is not breached: elements belonging to iframes are not exposed to the parent frames. No timing information is passed to the parent frame unless the developer themselves explicitly pass information via postMessage.
 
-Most of the information provided by this API can already be estimated, even if in tedious ways. ElementTiming returns the first rendering time for images and text. The PaintTiming API could be used to compute a related timestamp for all the elements within a container root (See [Polyfill](#heading=h.3wxxpyowvuit))
+Most of the information provided by this API can already be estimated, even if in tedious ways. Element Timing returns the first rendering time for images and text. The PaintTiming API could be used to compute a related timestamp for all the elements within a container root (See [Polyfill](#heading=h.3wxxpyowvuit))
 
 ## Polyfill
 
@@ -180,7 +180,7 @@ Most of the information provided by this API can already be estimated, even if i
 - Setting the `containertiming` attribute far up the tree could cause a lot of processing as the depth is infinite, we may need to have some limit or default depth set.
 - We will want to add some way for developers to ignore certain blocks of elements without using an inner container (which would degrade performance).
 - As most developers will be using this for startup metrics (similar to LCP) do we want to offer an option to stop tracking on user input?
-- Do we want to populate the duration field in the ContainerTimingPerformance object, currently it's 0\. There is an argument for it being `RenderTime - TimeOrigin`, but the renderTime already represents that value. So it could be `RenderTime - StartTime` so you can see the delta between the first render time and the current one.
+- Do we want to populate the duration field in the `ContainerTimingPerformance` object, currently it's 0. There is an argument for it being `RenderTime - TimeOrigin`, but the `renderTime` already represents that value. So it could be `RenderTime - StartTime` so you can see the delta between the first render time and the current one.
 - As the browser paints in batches lastPaintedElement may need to be an array of elements
 
 ## Implementation Work
@@ -191,8 +191,8 @@ Most of the information provided by this API can already be estimated, even if i
 
 ## Glossary
 
-- **Region** \- This is a Skia [SkRegion](https://api.skia.org/classSkRegion.html) object which efficiently holds rects and can calculate overlaps between them plus various other things such as total size etc.
-- **Container Root** \- This is an element which has the "containertiming" attribute applied
+- **Region**: This is a Skia [SkRegion](https://api.skia.org/classSkRegion.html) object which efficiently holds rects and can calculate overlaps between them plus various other things such as total size etc.
+- **Container Root**: This is an element which has the "containertiming" attribute applied
 
 ## Links & Further Reading
 
