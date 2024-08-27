@@ -1,5 +1,29 @@
 # Container Timing: Explainer
 
+1. [Authors](#authors)
+1. [Introduction](#introduction)
+1. [Motivation](#motivation)
+1. [Objectives](#objectives)
+1. [Registration](#registration)
+1. [PerformanceContainerTiming](#performancecontainertiming)
+   1. [Web IDL (subject to change)](#web-idl-subject-to-change)
+1. [Algorithm](#algorithm)
+   1. [Life Cycle](#life-cycle)
+1. [Nested Containers Roots](#nested-container-roots)
+   1. [Ignore](#ignore-default)
+   1. [Transparent](#transparent)
+   1. [Shadowed](#shadowed)
+1. [Non Goals](#non-goals)
+   1. [LCP Integration](#lcp-integration)
+   1. [Built-in containers](#built-in-containers)
+   1. [Shadow DOM](#shadow-dom)
+1. [Security and Privacy](#security-and-privacy)
+1. [Polyfill](#polyfill)
+1. [Questions](#questions)
+1. [Implementation](#implementation-work)
+1. [Glossary](#glossary)
+1. [Links](#links--further-reading)
+
 ## Authors
 
 - Jason Williams (Bloomberg)
@@ -19,7 +43,7 @@ As developers increasingly organise their applications into components there's b
 Current Web API's don't help with this. Element Timing will be [limited](https://w3c.github.io/paint-timing/#timing-eligible) due to what it can mark so it can't be used for whole sections. The polyfill referenced below does attempt to provide a userland solution by adding Element Timing to all elements within a container and using the data from those performance entries know when painting has finished, this does have several drawbacks though:
 
 - Marking elements with the `elementtiming` attribute needs to happen as early as possible before painting happens, this will require server side changes or blocking rendering until all elements are marked (degrading performance)
-- A [MutationObserver](https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver) needs to be utilised to catch new elements being injected into the DOM (with `elementtiming` being set) 
+- A [MutationObserver](https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver) needs to be utilised to catch new elements being injected into the DOM (with `elementtiming` being set)
 - The polyfill will need to run and perform set up in the head of the page increasing the time to first paint.
 - Tracking of rectangles will need to be performed in userspace rather then the browsers built in 2D engine making it much less efficient
 
