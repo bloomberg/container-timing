@@ -15,8 +15,6 @@ interface PerformanceElementTiming extends PerformanceEntry {
 }
 
 interface ResolvedRootData extends PerformanceContainerTiming {
-  /** Keep track of all the paintedRects */
-  paintedRects: Set<DOMRectReadOnly>;
   /** For aggregated paints keep track of the union painted rect */
   coordData?: any;
 }
@@ -35,7 +33,7 @@ const containerRootDataMap = new Map<Element, ResolvedRootData>();
 const containerRootUpdates = new Set<Element>();
 // Keep track of the last set of resolved data so it can be shown in debug mode
 let lastResolvedData: Partial<{
-  paintedRects: Set<DOMRectReadOnly>;
+  damagedRects: Set<DOMRectReadOnly>;
   intersectionRect: DOMRectReadOnly;
 }>;
 
@@ -113,6 +111,7 @@ class PerformanceContainerTiming implements PerformanceEntry {
   firstRenderTime: number;
   size: number;
   lastPaintedElement: Element | null;
+  damagedRects: Set<DOMRectReadOnly>;
 
   constructor(
     startTime: number,
@@ -120,12 +119,14 @@ class PerformanceContainerTiming implements PerformanceEntry {
     size: number,
     firstRenderTime: number,
     lastPaintedElement: Element | null,
+    damagedRects: Set<DOMRectReadOnly>
   ) {
     this.identifier = identifier;
     this.size = size;
     this.startTime = startTime;
     this.firstRenderTime = firstRenderTime;
     this.lastPaintedElement = lastPaintedElement;
+    this.damagedRects = damagedRects;
   }
 
   toJSON(): void {}
@@ -205,7 +206,7 @@ class ContainerPerformanceObserver implements PerformanceObserver {
       entryType: "container",
       name: "",
       duration: 0,
-      paintedRects: new Set(),
+      damagedRects: new Set(),
       identifier: "",
       size: 0,
       startTime: 0,
@@ -329,7 +330,7 @@ class ContainerPerformanceObserver implements PerformanceObserver {
     }
 
     // TODO: We should look into better ways to combine rectangles or detect overlapping rectangles such as R-Tree or Quad Tree algorithms
-    for (const rect of resolvedRootData.paintedRects) {
+    for (const rect of resolvedRootData.damagedRects) {
       if (ContainerPerformanceObserver.overlaps(entry.intersectionRect, rect)) {
         return;
       }
@@ -337,7 +338,7 @@ class ContainerPerformanceObserver implements PerformanceObserver {
 
     resolvedRootData.lastPaintedElement = entry.element;
     resolvedRootData.startTime = entry.startTime; // For images this will either be the load time or render time
-    resolvedRootData.paintedRects?.add(entry.intersectionRect);
+    resolvedRootData.damagedRects?.add(entry.intersectionRect);
     // size won't be super accurate as it doesn't take into account overlaps
     resolvedRootData.size += incomingEntrySize;
     resolvedRootData.identifier ||= closestRoot.getAttribute("containertiming");
@@ -346,7 +347,7 @@ class ContainerPerformanceObserver implements PerformanceObserver {
     // Update States
     containerRootDataMap.set(closestRoot, resolvedRootData);
     containerRootUpdates.add(closestRoot);
-    lastResolvedData.paintedRects?.add(entry.intersectionRect);
+    lastResolvedData.damagedRects?.add(entry.intersectionRect);
 
     // If nested update any parents
     this.updateParentIfExists(closestRoot);
@@ -425,7 +426,7 @@ class ContainerPerformanceObserver implements PerformanceObserver {
     containerRootUpdates.clear();
 
     // Reset last resolved data state, we want to re-use coordinate and size if aggregated
-    lastResolvedData = { paintedRects: new Set() };
+    lastResolvedData = { damagedRects: new Set() };
 
     const processEntries = (entry: PerformanceEntry): void => {
       // This should ensure we're dealing with a PerformanceElementTiming instance
@@ -465,12 +466,13 @@ class ContainerPerformanceObserver implements PerformanceObserver {
           resolvedRootData.size,
           resolvedRootData.firstRenderTime,
           resolvedRootData.lastPaintedElement,
+          resolvedRootData.damagedRects
         );
 
         containerEntries.push(containerCandidate);
 
         if (this.debug) {
-          const rects = lastResolvedData?.paintedRects;
+          const rects = lastResolvedData?.damagedRects;
           ContainerPerformanceObserver.paintDebugOverlay(rects);
         }
       });
