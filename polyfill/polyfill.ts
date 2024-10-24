@@ -234,6 +234,7 @@ class ContainerPerformanceObserver implements PerformanceObserver {
       div.style.left = `${rectData.left}px`;
       div.style.position = "absolute";
       div.style.transition = "background-color 1s";
+      div.setAttribute("containertiming-ignore", '');
       document.body.appendChild(div);
       divCol.add(div);
     };
