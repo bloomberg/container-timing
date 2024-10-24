@@ -239,7 +239,7 @@ class ContainerPerformanceObserver implements PerformanceObserver {
       divCol.add(div);
     };
 
-    if (rectData instanceof Set) {
+    if ((rectData instanceof Set) || (Array.isArray(rectData))) {
       rectData?.forEach((rect) => {
         addOverlayToRect(rect);
       });

@@ -1,7 +1,8 @@
-window.ctDebug = true;
 const observer = new PerformanceObserver((list) => {
   list.getEntries().forEach((entry) => {
     console.log(entry);
+    const rects = entry.damagedRects;
+    ContainerPerformanceObserver.paintDebugOverlay(rects);
   });
 });
 
