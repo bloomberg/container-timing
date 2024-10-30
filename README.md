@@ -265,3 +265,11 @@ Finally tracking of all rectangles in user space may not be as efficient as the 
 - Element Timing For Containers: [https://www.youtube.com/watch?v=MjGVtshDN7U](https://www.youtube.com/watch?v=MjGVtshDN7U).
 - [Element Timing for Text](https://docs.google.com/document/d/1xhPJnXf0Nqsi8cBFrlzBuHavirOVZBd8TqdD_OyrDGw/edit)
 - [Element Timing Implementation Proposal](https://docs.google.com/document/d/1BvHknbj3T-fUuj4RxHF8qGRNxbswtBqUjKiPx7iLXCc/edit#heading=h.sgo0q1rfaa9b)
+
+## References & acknowledgements
+
+Many thanks for valuable feedback and advice from:
+
+- [Barry Pollard](https://github.com/tunetheweb)
+- [Michael Mocny](https://github.com/mmocny)
+- [Sergey Chernyshev](https://github.com/sergeychernyshev)
