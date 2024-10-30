@@ -1,5 +1,17 @@
 # Container Timing: Explainer
 
+## Authors
+
+- Jason Williams (Bloomberg)
+- José Dapena Paz (Igalia)
+
+## Participate
+
+- [Explainer Issues](https://github.com/bloomberg/container-timing/issues)
+- [Github Repo](https://github.com/bloomberg/container-timing)
+
+## Table Of Contents
+
 1. [Authors](#authors)
 1. [Introduction](#introduction)
 1. [Motivation](#motivation)
@@ -24,11 +36,6 @@
 1. [Glossary](#glossary)
 1. [Links](#links--further-reading)
 
-## Authors
-
-- Jason Williams (Bloomberg)
-- José Dapena Paz (Igalia)
-
 ## Introduction
 
 The Container Timing API enables monitoring when annotated sections of the DOM are displayed on screen and have finished their initial paint.
@@ -51,14 +58,28 @@ Developers know their domain better than anyone else and they would like to be a
 
 Being able to mark a segment of content and asking the render to identify when that has been painted is a growing request by developers.
 
-## Objectives:
+## Goals:
 
 1. Inform developers when sections of the DOM are first displayed on the screen. To keep the first version of this spec simpler, we are not including ShadowDOM in this version as this still needs to be understood for `elementtiming`.
 2. Inform developers when those same sections of the DOM have finished their initial paint activity (indicating this section is ready for viewing or interacting with).
 
-## Registration
+## Non Goals
 
-As with Element Timing, registration will be on a per-element basis. An element with a `containertiming` attribute is registered for observation. There is currently no plan for implicit registration; see [Built-in containers](#heading=h.k6gr8lpc060n)
+### LCP Integration
+
+This is not intended to provide changes to the [Largest Contentful Paint](https://developer.mozilla.org/en-US/docs/Web/API/LargestContentfulPaint) algorithm. Although in the future LCP could benefit from user-marks of content which are containers and receiving paint times from those to choose better candidates it's currently not in scope whether this will have any affect any on any existing browser metrics
+
+### Built-in containers
+
+The changes here are also not going to add support to built in composite elements such as MathML or SVG, in future it's possible for a follow up proposal to mark those elements as containers so they can be counted for higher-level metrics such as LCP and added to the results when observing container timing.
+
+### Shadow DOM
+
+Currently Element Timing [doesn't have support for shadow DOM](https://github.com/WICG/element-timing/issues/3). There will need to be many architecture-decisions made on how the shadow DOM interacts with element timing, (should it be opened up or closed, should individual elements be surfaced or just the shadow host element). Once we have a good story for Element Timing we can later have a proposal for Container Timing too (which hopefully follows similar rules to the Element Timing API).
+
+## Using the API
+
+As with [Element Timing](https://github.com/WICG/element-timing), registration will be on a per-element basis. An element with a `containertiming` attribute will have itself and its whole sub-tree registered for container timing. There is currently no plan for implicit registration; see [Built-in containers](#built-in-containers)
 
 Example:
 
@@ -78,7 +99,7 @@ It is strongly encouraged to set the attribute before the element is added to th
 
 This is the preferred method of annotating container roots, as it gives developers the power to decide which elements they consider important.
 
-## PerformanceContainerTiming
+### PerformanceContainerTiming
 
 Now we describe precisely what information is exposed via the WebPerf API. The PerformanceContainerTiming IDL attributes are defined as followed:
 
@@ -89,6 +110,18 @@ Now we describe precisely what information is exposed via the WebPerf API. The P
 - `firstRenderTime`: A [DOMHighResTimeStamp](https://developer.mozilla.org/en-US/docs/Web/API/DOMHighResTimeStamp) of the first paint time for this container
 - `duration`: A [DOMHighResTimeStamp](https://developer.mozilla.org/en-US/docs/Web/API/DOMHighResTimeStamp) set to 0
 - `lastPaintedElement`: An [Element](https://dom.spec.whatwg.org/#concept-element) set to the last painted element (this may need to be a set of elements painted)
+
+### Ignoring parts of the DOM
+
+If you want wish to ignore parts of the DOM tree you are monitoring, you can add the `containertiming-ignore` attribute to the element you want to ignore (plus its children).
+
+```html
+<div … containertiming="foobar">
+  <main>...</main>
+  <!-- We don't want to track paint udpates in the aside -->
+  <aside containertiming-ignore>...</aside>
+</div>
+```
 
 ### Web IDL (subject to change)
 
@@ -174,20 +207,6 @@ Shadowed has the same concern as "transparent" (measuring everything below the `
   <img alt="Illustration showing the effect of nested containers for the shadowed pattern" src="./docs/img/nested-shadowed-light.svg">
 </picture>
 
-## Non Goals
-
-### LCP Integration
-
-This is not intended to provide changes to the [Largest Contentful Paint](https://developer.mozilla.org/en-US/docs/Web/API/LargestContentfulPaint) algorithm. Although in the future LCP could benefit from user-marks of content which are containers and receiving paint times from those to choose better candidates it's currently not in scope whether this will have any affect any on any existing browser metrics
-
-### Built-in containers
-
-The changes here are also not going to add support to built in composite elements such as MathML or SVG, in future it's possible for a follow up proposal to mark those elements as containers so they can be counted for higher-level metrics such as LCP and added to the results when observing container timing.
-
-### Shadow DOM
-
-Currently Element Timing [doesn't have support for shadow DOM](https://github.com/WICG/element-timing/issues/3). There will need to be many architecture-decisions made on how the shadow DOM interacts with element timing, (should it be opened up or closed, should individual elements be surfaced or just the shadow host element). Once we have a good story for Element Timing we can later have a proposal for Container Timing too (which hopefully follows similar rules to the Element Timing API).
-
 ## Security and Privacy
 
 The cross-frame boundary is not breached: elements belonging to iframes are not exposed to the parent frames. No timing information is passed to the parent frame unless the developer themselves explicitly pass information via postMessage.
@@ -199,10 +218,31 @@ Most of the information provided by this API can already be estimated, even if i
 - See [Polyfill](./docs/polyfill.md)
 - See [Polyfill Performance Impact](./docs/performance-impact.md)
 
+## Considered alternatives
+
+### Element Timing every where
+
+Element Timing can be applied to any element by the developer, but is too limited in what it can support. Developers wanting to measure when a component is ready would need to apply the attribute to every element which is cumbersome and sometimes in-feasible (when the component is not authored by them). On top of this, element timing wouldn't take into account new elements coming into the DOM at a later stage.
+
+### Largest Contentful Paint
+
+For the reasons mentioned in the [Motivation](#motivation), Largest Contentful Paint (LCP) isn't useful enough to time when specific parts of the page have loaded, it utilizes element-timing for its functionality and thus has the same shortcomings as element-timing.
+
+We looked into using a user-space polyfill instead of building a feature into the
+
+### User-space polyfill in JavaScript
+
+As mentioned in the [Motivation](#motivation) the polyfill would need a few things in place to work properly and can add overhead to the web application.
+The polyfill will need to mark elements with `elementtiming` as soon as possible, especially before the browser begins painting. In order to achieve this the polyfill will need to run in the head, block rendering and scan the DOM for a `containertiming` attribute and modify the children elements to add the `elementtiming` attributes to all "eligible" child nodes.
+
+After marking elements in the initial DOM the polyfill will then need to setup a MutationObserver to watch for changes in the tree and tag newly-incoming elements with the `elementtiming` attribute before they are painted. This can lead to a race condition where the element may paint before the attribute is applied and element timing is taken into effect.
+
+Finally tracking of all rectangles in user space may not be as efficient as the browsers built-in 2D library and thus can incur memory overhead.
+
 ## Questions
 
 - Setting the `containertiming` attribute far up the tree could cause a lot of processing as the depth is infinite, we may need to have some limit or default depth set.
-- We will want to add some way for developers to ignore certain blocks of elements without using an inner container (which would degrade performance).
+- ~~We will want to add some way for developers to ignore certain blocks of elements without using an inner container (which would degrade performance).~~
 - As most developers will be using this for startup metrics (similar to LCP) do we want to offer an option to stop tracking on user input?
 - Do we want to populate the duration field in the `ContainerTimingPerformance` object, currently it's 0. There is an argument for it being `RenderTime - TimeOrigin`, but the `renderTime` already represents that value. So it could be `RenderTime - StartTime` so you can see the delta between the first render time and the current one.
 - As the browser paints in batches lastPaintedElement may need to be an array of elements
@@ -215,7 +255,7 @@ Most of the information provided by this API can already be estimated, even if i
 
 ## Glossary
 
-- **Region**: This is a Skia [SkRegion](https://api.skia.org/classSkRegion.html) object which efficiently holds rects and can calculate overlaps between them plus various other things such as total size etc.
+- **Region**: This is an object which efficiently holds Rects and can calculate overlaps between them plus various other things such as total size etc. In Chromium this would be a [Skia](https://skia.org/) or [SkRegion](https://api.skia.org/classSkRegion.html), Firefox's Moz2D and Webkit's CoreGraphics libraries should have equibalent concepts.
 - **Container Root**: This is an element which has the "containertiming" attribute applied
 
 ## Links & Further Reading
