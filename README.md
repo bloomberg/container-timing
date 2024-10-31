@@ -41,37 +41,37 @@
 The Container Timing API enables monitoring when annotated sections of the DOM are displayed on screen and have finished their initial paint.
 A developer will have the ability to mark subsections of the DOM with the `containertiming` attribute (similar to `elementtiming` for the [Element Timing API](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceElementTiming)) and receive performance entries when that section has been painted for the first time. This API will allow developers to measure the timing of various components in their pages.
 
-Unlike with Element Timing it is not possible for the renderer to know when a section of the DOM has finished painting (there could be future changes, asynchronous requests for new images, slow loading buttons etc), so this API will offer candidates in the form of new Performance Entries when there has been an update, the developer can choose to take the most recent entry or stop recording when there has been user interaction.
+Unlike with Element Timing it is not possible for the renderer to know when a section of the DOM has finished painting (there could be future changes, asynchronous requests for new images, slow loading buttons etc), so this API will offer candidates in the form of new [`PerformanceEntry`](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceEntry) objects when there has been an update, and the developer can choose to take the most recent entry or stop recording when there has been user interaction.
 
-## Motivation:
+## Motivation
 
-As developers increasingly organise their applications into components there's becoming a demand to measure performance on sub sections of an application or a web page. For instance, [a developer wants to know](https://groups.google.com/g/web-vitals-feedback/c/TaQm0qq_kjs/m/z1AGXE0MBQAJ?utm_medium=email&utm_source=footer) when a subsection of the DOM has been painted, like a table or a widget so they can mark the paint time and submit it to their analytics.
+As developers increasingly organise their applications into components there's becoming a demand to measure performance on subsections of an application or a web page. For instance, [a developer may want to know](https://groups.google.com/g/web-vitals-feedback/c/TaQm0qq_kjs/m/z1AGXE0MBQAJ?utm_medium=email&utm_source=footer) when a subsection of the DOM has been painted, like a table or a widget, so they can mark the paint time and submit it to their analytics.
 
-Current Web API's don't help with this. Element Timing will be [limited](https://w3c.github.io/paint-timing/#timing-eligible) due to what it can mark so it can't be used for whole sections. The polyfill referenced below does attempt to provide a userland solution by adding Element Timing to all elements within a container and using the data from those performance entries know when painting has finished, this does have several drawbacks though:
+Current Web APIs don't help with this. Element Timing is [limited](https://w3c.github.io/paint-timing/#timing-eligible) due to what it can mark so it can't be used for whole sections. The polyfill referenced below does attempt to provide a userland solution by adding Element Timing to all elements within a container and using the data from those performance entries to know when painting has finished. This does have several drawbacks though:
 
-- Marking elements with the `elementtiming` attribute needs to happen as early as possible before painting happens, this will require server side changes or blocking rendering until all elements are marked (degrading performance)
+- Marking elements with the `elementtiming` attribute needs to happen as early as possible before painting happens; this will require server side changes or blocking rendering until all elements are marked (degrading performance)
 - A [MutationObserver](https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver) needs to be utilised to catch new elements being injected into the DOM (with `elementtiming` being set)
-- The polyfill will need to run and perform set up in the head of the page increasing the time to first paint.
+- The polyfill will need to run and perform set up in the head of the page increasing the time to first paint
 - Tracking of rectangles will need to be performed in userspace rather then the browsers built in 2D engine making it much less efficient
 
 Developers know their domain better than anyone else and they would like to be able to communicate the performance of their own blocks of content in a way that their users or organisation would understand, for example ["time to first tweet"](https://youtu.be/1jGaov-4ZcQ?si=lwk3mIRuwvxxWCDQ&t=2907).
 
 Being able to mark a segment of content and asking the render to identify when that has been painted is a growing request by developers.
 
-## Goals:
+## Goals
 
-1. Inform developers when sections of the DOM are first displayed on the screen. To keep the first version of this spec simpler, we are not including ShadowDOM in this version as this still needs to be understood for `elementtiming`.
+1. Inform developers when sections of the DOM are first displayed on the screen. To keep the first version of this spec simpler, we are not including shadow DOM in this version, as this still needs to be understood for `elementtiming`.
 2. Inform developers when those same sections of the DOM have finished their initial paint activity (indicating this section is ready for viewing or interacting with).
 
 ## Non Goals
 
 ### LCP Integration
 
-This is not intended to provide changes to the [Largest Contentful Paint](https://developer.mozilla.org/en-US/docs/Web/API/LargestContentfulPaint) algorithm. Although in the future LCP could benefit from user-marks of content which are containers and receiving paint times from those to choose better candidates it's currently not in scope whether this will have any affect any on any existing browser metrics
+This is not intended to provide changes to the [Largest Contentful Paint](https://developer.mozilla.org/en-US/docs/Web/API/LargestContentfulPaint) algorithm. Although in the future LCP could benefit from user-marks of content which are containers and receiving paint times from those to choose better candidates it's currently not in scope whether this will have any affect any on any existing browser metrics.
 
 ### Built-in containers
 
-The changes here are also not going to add support to built in composite elements such as MathML or SVG, in future it's possible for a follow up proposal to mark those elements as containers so they can be counted for higher-level metrics such as LCP and added to the results when observing container timing.
+The changes here are also not going to add support to built in composite elements such as MathML or SVG. In future it's possible for a follow up proposal to mark those elements as containers so they can be counted for higher-level metrics such as LCP and added to the results when observing container timing.
 
 ### Shadow DOM
 
@@ -79,7 +79,7 @@ Currently Element Timing [doesn't have support for shadow DOM](https://github.co
 
 ## Using the API
 
-As with [Element Timing](https://github.com/WICG/element-timing), registration will be on a per-element basis. An element with a `containertiming` attribute will have itself and its whole sub-tree registered for container timing. There is currently no plan for implicit registration; see [Built-in containers](#built-in-containers)
+As with [Element Timing](https://github.com/WICG/element-timing), registration will be on a per-element basis. An element with a `containertiming` attribute will have itself and its whole sub-tree registered for container timing. There is currently no plan for implicit registration; see [Built-in containers](#built-in-containers).
 
 Example:
 
@@ -175,11 +175,11 @@ If the Container Timing algorithm receives paint updates from elements inside a 
 
 ## Nested Container Roots
 
-Nesting behaviour needs to be considered, for now we have 3 options, and we may be able to offer the developer all 3 options or we will trim this down as this proposal is developed.
+Nesting behaviour needs to be considered. For now we have 3 options, and we may be able to offer the developer all 3 options or we will trim this down as this proposal is developed.
 
 ### Ignore (default)
 
-The simplest option is to just ignore any content within an inner container, developers may want this because once you hit an annotated boundary it will be of another concern, the developer may only want to measure the performance of their own content and not what is coming from something else. We may also want to add some ways for developers to just ignore content in general (such as ads which are out of the developer's control, see [Questions](#heading=h.elcf4k4aph14)). See below for a visual example.
+The simplest option is to just ignore any content within an inner container. Developers may want this because once you hit an annotated boundary it will be of another concern, the developer may only want to measure the performance of their own content and not what is coming from something else. We may also want to add some ways for developers to just ignore content in general (such as ads which are out of the developer's control, see [Questions](#heading=h.elcf4k4aph14)). See below for a visual example.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="./docs/img/nested-ignore-dark.svg">
@@ -211,7 +211,7 @@ Shadowed has the same concern as "transparent" (measuring everything below the `
 
 The cross-frame boundary is not breached: elements belonging to iframes are not exposed to the parent frames. No timing information is passed to the parent frame unless the developer themselves explicitly pass information via postMessage.
 
-Most of the information provided by this API can already be estimated, even if in tedious ways. Element Timing returns the first rendering time for images and text. The PaintTiming API could be used to compute a related timestamp for all the elements within a container root (See [Polyfill](#heading=h.3wxxpyowvuit))
+Most of the information provided by this API can already be estimated, even if in tedious ways. Element Timing returns the first rendering time for images and text. The PaintTiming API could be used to compute a related timestamp for all the elements within a container root (see [Polyfill](#heading=h.3wxxpyowvuit)).
 
 ## Polyfill
 
@@ -220,13 +220,13 @@ Most of the information provided by this API can already be estimated, even if i
 
 ## Considered alternatives
 
-### Element Timing every where
+### Element Timing everywhere
 
-Element Timing can be applied to any element by the developer, but is too limited in what it can support. Developers wanting to measure when a component is ready would need to apply the attribute to every element which is cumbersome and sometimes in-feasible (when the component is not authored by them). On top of this, element timing wouldn't take into account new elements coming into the DOM at a later stage.
+Element Timing can be applied to any element by the developer, but is too limited in what it can support. Developers wanting to measure when a component is ready would need to apply the attribute to every element which is cumbersome and sometimes infeasible (when the component is not authored by them). On top of this, element timing wouldn't take into account new elements coming into the DOM at a later stage.
 
 ### Largest Contentful Paint
 
-For the reasons mentioned in the [Motivation](#motivation), Largest Contentful Paint (LCP) isn't useful enough to time when specific parts of the page have loaded, it utilizes element-timing for its functionality and thus has the same shortcomings as element-timing.
+For the reasons mentioned in the [Motivation](#motivation), Largest Contentful Paint (LCP) isn't useful enough to time when specific parts of the page have loaded, it utilizes element timing for its functionality and thus has the same shortcomings as element timing.
 
 We looked into using a user-space polyfill instead of building a feature into the
 
