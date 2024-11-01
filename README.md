@@ -48,7 +48,7 @@ Unlike with Element Timing it is not possible for the renderer to know when a se
 
 As developers increasingly organise their applications into components there's becoming a demand to measure performance on subsections of an application or a web page. For instance, [a developer may want to know](https://groups.google.com/g/web-vitals-feedback/c/TaQm0qq_kjs/m/z1AGXE0MBQAJ?utm_medium=email&utm_source=footer) when a subsection of the DOM has been painted, like a table or a widget, so they can mark the paint time and submit it to their analytics.
 
-Current Web APIs don't help with this. Element Timing is [limited](https://w3c.github.io/paint-timing/#timing-eligible) due to what it can mark so it can't be used for whole sections. The polyfill referenced below does attempt to provide a userland solution by adding Element Timing to all elements within a container and using the data from those performance entries to know when painting has finished. This does have several drawbacks though:
+Current Web APIs don't help with this. Element Timing is [limited](https://w3c.github.io/paint-timing/#timing-eligible) due to what it can mark so it can't be used for whole sections. The polyfill referenced below does attempt to provide a userspace solution by adding Element Timing to all elements within a container and using the data from those performance entries to know when painting has finished. This does have several drawbacks though:
 
 - Marking elements with the `elementtiming` attribute needs to happen as early as possible before painting happens; this will require server side changes or blocking rendering until all elements are marked (degrading performance)
 - A [MutationObserver](https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver) needs to be utilised to catch new elements being injected into the DOM (with `elementtiming` being set)
@@ -123,6 +123,8 @@ If you want wish to ignore parts of the DOM tree you are monitoring, you can add
   <aside containertiming-ignore>...</aside>
 </div>
 ```
+
+_TODO: needs adding to the polyfill_
 
 ### Web IDL (subject to change)
 
@@ -254,7 +256,7 @@ Finally tracking of all rectangles in user space may not be as efficient as the 
 
 ## Glossary
 
-- **Region**: This is an object which efficiently holds Rects and can calculate overlaps between them plus various other things such as total size etc. In Chromium this would be a [Skia](https://skia.org/) or [SkRegion](https://api.skia.org/classSkRegion.html), Firefox's Moz2D and Webkit's CoreGraphics libraries should have equibalent concepts.
+- **Region**: This is an object which efficiently holds Rects and can calculate overlaps between them plus various other things such as total size etc. In Chromium this would be a [Skia](https://skia.org/) or [SkRegion](https://api.skia.org/classSkRegion.html), Firefox's Moz2D and Webkit's CoreGraphics libraries should have equivalent concepts.
 - **Container Root**: This is an element which has the "containertiming" attribute applied
 
 ## Links & Further Reading
@@ -271,4 +273,5 @@ Many thanks for valuable feedback and advice from:
 
 - [Barry Pollard](https://github.com/tunetheweb)
 - [Michael Mocny](https://github.com/mmocny)
+- [Scott Haseley](https://github.com/shaseley)
 - [Sergey Chernyshev](https://github.com/sergeychernyshev)
