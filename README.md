@@ -31,6 +31,7 @@
    1. [Shadow DOM](#shadow-dom)
 1. [Security and Privacy](#security-and-privacy)
 1. [Polyfill](#polyfill)
+1. [Considered alternatives](#considered-alternatives)
 1. [Questions](#questions)
 1. [Implementation](#implementation-work)
 1. [Glossary](#glossary)
@@ -227,8 +228,6 @@ Element Timing can be applied to any element by the developer, but is too limite
 ### Largest Contentful Paint
 
 For the reasons mentioned in the [Motivation](#motivation), Largest Contentful Paint (LCP) isn't useful enough to time when specific parts of the page have loaded, it utilizes element timing for its functionality and thus has the same shortcomings as element timing.
-
-We looked into using a user-space polyfill instead of building a feature into the
 
 ### User-space polyfill in JavaScript
 
