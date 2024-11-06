@@ -175,8 +175,6 @@ class ContainerPerformanceObserver implements PerformanceObserver {
   nativePerformanceObserver: PerformanceObserver;
   // Debug flag to include extra data
   debug: boolean;
-  // Which nested strategy is set
-  nestedStrategy: NestedStrategy = "ignore";
   // We need to know if element timing has been explicitly set or not
   overrideElementTiming: boolean = false;
   // is container timing being used or should we just passthrough to the native polyfill
@@ -272,7 +270,7 @@ class ContainerPerformanceObserver implements PerformanceObserver {
   }
 
   observe(
-    options?: PerformanceObserverInit & { nestedStrategy: NestedStrategy },
+    options?: PerformanceObserverInit,
   ) {
     const hasOption = (name: string, options?: PerformanceObserverInit) =>
       options?.entryTypes?.includes(name) || options?.type === name;
@@ -292,7 +290,6 @@ class ContainerPerformanceObserver implements PerformanceObserver {
       }
 
       this.entryTypes = resolvedTypes;
-      this.nestedStrategy ??= options?.nestedStrategy || "ignore";
       // If we only have 1 type its preferred to use the type property, otherwise use entryTypes
       // This is to make sure buffered still works when we only have "element" set.
       this.nativePerformanceObserver.observe({
