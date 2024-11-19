@@ -75,10 +75,10 @@ For more info on nested containers, see [Nested Containers](../README.md#nested-
 You can set a global `ctDebug` flag to true in order to see paint rectangles from the collection of paints when a container has updated. This will work only when using the polyfill and not the native implementation.
 (set `window.ctDebug` or `globalThis.ctDebug` to true).
 
-In case you want to handle directly the painting of the rectangles, you can use directly the API provided by the polyfill,
-`ContainerPerformanceObserver.paintDebugOverlay(rects)`.
+Debug mode will not only show the rect overlays but it will also expose a `damagedRects` property on the `PerformanceContainerTimingDebug` class.
 
 An example:
+
 ```js
 const nativeObserver = new PerformanceObserver((v) => {
   const entries = v.getEntries();

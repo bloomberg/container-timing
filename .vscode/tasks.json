@@ -2,13 +2,13 @@
   "tasks": [
     {
       "type": "npm",
-      "script": "watch",
+      "script": "build",
       "group": {
         "kind": "build",
         "isDefault": true
       },
       "problemMatcher": [],
-      "label": "npm: watch",
+      "label": "npm: build",
       "detail": "tsc",
       "path": "/polyfill"
     }
