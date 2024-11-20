@@ -1,4 +1,4 @@
-const native_implementation_available = ("PerformanceContainerTiming" in window);
+const native_implementation_available = "PerformanceContainerTiming" in window;
 
 // https://wicg.github.io/element-timing/#performanceelementtiming
 interface PerformanceElementTiming extends PerformanceEntry {
@@ -15,6 +15,7 @@ interface PerformanceElementTiming extends PerformanceEntry {
 }
 
 interface ResolvedRootData extends PerformanceContainerTiming {
+  damagedRects: Set<DOMRectReadOnly>;
   /** For aggregated paints keep track of the union painted rect */
   coordData?: any;
 }
@@ -25,6 +26,7 @@ type NestedStrategy = "ignore" | "transparent" | "shadowed";
 // Otherwise no elements will be observed
 const INTERNAL_ATTR_NAME = "POLYFILL-ELEMENTTIMING";
 const containerTimingAttrSelector = "[containertiming]";
+const containerTimingIgnoreSelector = "[containertiming-ignore]";
 const NativePerformanceObserver = window.PerformanceObserver;
 // containerRoots needs to be set before "observe" has initiated due to the fact new elements could have been injected earlier
 const containerRoots = new Set<Element>();
@@ -65,6 +67,11 @@ const mutationObserverCallback = (mutationList: MutationRecord[]) => {
         // At this point we can be certain we're dealing with an element
         const element = node as Element;
 
+        // If the element is a descendent of an ignored container we should skip
+        if (element.closest(containerTimingIgnoreSelector)) {
+          continue;
+        }
+
         // Theres a chance the new sub-tree injected is a descendent of a container that was already in the DOM
         // Go through the container have currently and check..
         if (element.closest(containerTimingAttrSelector)) {
@@ -82,10 +89,9 @@ const mutationObserverCallback = (mutationList: MutationRecord[]) => {
   }
 };
 
-
 // Wait until the DOM is ready then start collecting elements needed to be timed.
 if (!native_implementation_available) {
-  console.debug("Enabling polyfill")
+  console.debug("Enabling polyfill");
   document.addEventListener("DOMContentLoaded", () => {
     mutationObserver = new window.MutationObserver(mutationObserverCallback);
 
@@ -99,7 +105,7 @@ if (!native_implementation_available) {
     });
   });
 } else {
-  console.debug("Native implementation of Container Timing available")
+  console.debug("Native implementation of Container Timing available");
 }
 
 class PerformanceContainerTiming implements PerformanceEntry {
@@ -111,7 +117,6 @@ class PerformanceContainerTiming implements PerformanceEntry {
   firstRenderTime: number;
   size: number;
   lastPaintedElement: Element | null;
-  damagedRects: Set<DOMRectReadOnly>;
 
   constructor(
     startTime: number,
@@ -119,8 +124,39 @@ class PerformanceContainerTiming implements PerformanceEntry {
     size: number,
     firstRenderTime: number,
     lastPaintedElement: Element | null,
-    damagedRects: Set<DOMRectReadOnly>
+    _: Set<DOMRectReadOnly> | undefined,
   ) {
+    this.identifier = identifier;
+    this.size = size;
+    this.startTime = startTime;
+    this.firstRenderTime = firstRenderTime;
+    this.lastPaintedElement = lastPaintedElement;
+  }
+
+  toJSON(): void {}
+}
+
+// The debug version of PerformanceContainerTiming, this will give some more detail
+class PerformanceContainerTimingDebug extends PerformanceContainerTiming {
+  damagedRects: Set<DOMRectReadOnly> | undefined;
+
+  constructor(
+    startTime: number,
+    identifier: string | null,
+    size: number,
+    firstRenderTime: number,
+    lastPaintedElement: Element | null,
+    damagedRects: Set<DOMRectReadOnly> | undefined,
+  ) {
+    super(
+      startTime,
+      identifier,
+      size,
+      firstRenderTime,
+      lastPaintedElement,
+      damagedRects,
+    );
+
     this.identifier = identifier;
     this.size = size;
     this.startTime = startTime;
@@ -128,8 +164,6 @@ class PerformanceContainerTiming implements PerformanceEntry {
     this.lastPaintedElement = lastPaintedElement;
     this.damagedRects = damagedRects;
   }
-
-  toJSON(): void {}
 }
 
 /**
@@ -163,6 +197,11 @@ class ContainerPerformanceObserver implements PerformanceObserver {
     const walkChildren = ({ children }: Element) => {
       const normalizedChildren = Array.from(children);
       normalizedChildren.forEach((child) => {
+        // If we see a containertiming-ignore we should stop traversing
+        if (child.matches && child.matches(containerTimingIgnoreSelector)) {
+          return;
+        }
+
         callback(child);
         if (child.children.length) {
           walkChildren(child);
@@ -234,12 +273,12 @@ class ContainerPerformanceObserver implements PerformanceObserver {
       div.style.left = `${rectData.left}px`;
       div.style.position = "absolute";
       div.style.transition = "background-color 1s";
-      div.setAttribute("containertiming-ignore", '');
+      div.setAttribute("containertiming-ignore", "");
       document.body.appendChild(div);
       divCol.add(div);
     };
 
-    if ((rectData instanceof Set) || (Array.isArray(rectData))) {
+    if (rectData instanceof Set || Array.isArray(rectData)) {
       rectData?.forEach((rect) => {
         addOverlayToRect(rect);
       });
@@ -294,7 +333,7 @@ class ContainerPerformanceObserver implements PerformanceObserver {
       this.entryTypes = resolvedTypes;
       this.nestedStrategy ??= options?.nestedStrategy || "ignore";
       // If we only have 1 type its preferred to use the type property, otherwise use entryTypes
-      // This is to make sure buffered still works when we only have "elmeent" set.
+      // This is to make sure buffered still works when we only have "element" set.
       this.nativePerformanceObserver.observe({
         type: resolvedTypes.length === 1 ? resolvedTypes[0] : undefined,
         entryTypes: resolvedTypes.length > 1 ? resolvedTypes : undefined,
@@ -326,6 +365,8 @@ class ContainerPerformanceObserver implements PerformanceObserver {
     );
 
     // There's a weird bug where we sometimes get a load of empty rects (all zero'd out)
+    // https://issues.chromium.org/issues/379844652
+    // https://github.com/bloomberg/container-timing/issues/8
     if (ContainerPerformanceObserver.isEmptyRect(entry.intersectionRect)) {
       return;
     }
@@ -461,13 +502,17 @@ class ContainerPerformanceObserver implements PerformanceObserver {
         if (!resolvedRootData) {
           return;
         }
-        const containerCandidate: any = new PerformanceContainerTiming(
+
+        const PerfContainerTimingClass = this.debug
+          ? PerformanceContainerTimingDebug
+          : PerformanceContainerTiming;
+        const containerCandidate: any = new PerfContainerTimingClass(
           resolvedRootData.startTime,
           resolvedRootData.identifier,
           resolvedRootData.size,
           resolvedRootData.firstRenderTime,
           resolvedRootData.lastPaintedElement,
-          resolvedRootData.damagedRects
+          resolvedRootData.damagedRects,
         );
 
         containerEntries.push(containerCandidate);
