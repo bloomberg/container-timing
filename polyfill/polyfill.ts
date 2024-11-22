@@ -16,6 +16,7 @@ interface PerformanceElementTiming extends PerformanceEntry {
 
 interface ResolvedRootData extends PerformanceContainerTiming {
   damagedRects: Set<DOMRectReadOnly>;
+  intersectionRect: DOMRectReadOnly | null;
   /** For aggregated paints keep track of the union painted rect */
   coordData?: any;
 }
@@ -137,6 +138,7 @@ class PerformanceContainerTiming implements PerformanceEntry {
 // The debug version of PerformanceContainerTiming, this will give some more detail
 class PerformanceContainerTimingDebug extends PerformanceContainerTiming {
   damagedRects: Set<DOMRectReadOnly> | undefined;
+  intersectionRect: DOMRectReadOnly;
 
   constructor(
     startTime: number,
@@ -145,6 +147,7 @@ class PerformanceContainerTimingDebug extends PerformanceContainerTiming {
     firstRenderTime: number,
     lastPaintedElement: Element | null,
     damagedRects: Set<DOMRectReadOnly> | undefined,
+    intersectionRect: DOMRectReadOnly,
   ) {
     super(
       startTime,
@@ -161,6 +164,7 @@ class PerformanceContainerTimingDebug extends PerformanceContainerTiming {
     this.firstRenderTime = firstRenderTime;
     this.lastPaintedElement = lastPaintedElement;
     this.damagedRects = damagedRects;
+    this.intersectionRect = intersectionRect;
   }
 }
 
@@ -169,7 +173,7 @@ class PerformanceContainerTimingDebug extends PerformanceContainerTiming {
  */
 class ContainerPerformanceObserver implements PerformanceObserver {
   nativePerformanceObserver: PerformanceObserver;
-  // Debug flag to show overlays
+  // Debug flag to include extra data
   debug: boolean;
   // Which nested strategy is set
   nestedStrategy: NestedStrategy = "ignore";
@@ -244,6 +248,7 @@ class ContainerPerformanceObserver implements PerformanceObserver {
       name: "",
       duration: 0,
       damagedRects: new Set(),
+      intersectionRect: null,
       identifier: "",
       size: 0,
       startTime: 0,
@@ -253,48 +258,6 @@ class ContainerPerformanceObserver implements PerformanceObserver {
     };
 
     return resolvedRootData;
-  }
-
-  static paintDebugOverlay(rectData?: DOMRectReadOnly | Set<DOMRectReadOnly>) {
-    if (!rectData) {
-      return;
-    }
-
-    const divCol: Set<Element> = new Set();
-    const addOverlayToRect = (rectData: DOMRectReadOnly) => {
-      const div = document.createElement("div");
-      div.classList.add("polyfill--ctDebugOverlay");
-      div.style.backgroundColor = "#00800078";
-      div.style.width = `${rectData.width}px`;
-      div.style.height = `${rectData.height}px`;
-      div.style.top = `${rectData.top}px`;
-      div.style.left = `${rectData.left}px`;
-      div.style.position = "absolute";
-      div.style.transition = "background-color 1s";
-      div.setAttribute("containertiming-ignore", "");
-      document.body.appendChild(div);
-      divCol.add(div);
-    };
-
-    if (rectData instanceof Set || Array.isArray(rectData)) {
-      rectData?.forEach((rect) => {
-        addOverlayToRect(rect);
-      });
-    } else {
-      addOverlayToRect(rectData);
-    }
-
-    setTimeout(() => {
-      divCol.forEach((div) => {
-        (div as HTMLDivElement).style.backgroundColor = "transparent";
-      });
-    }, 1000);
-
-    setTimeout(() => {
-      divCol.forEach((div) => {
-        div.remove();
-      });
-    }, 2000);
   }
 
   takeRecords(): PerformanceEntryList {
@@ -379,6 +342,16 @@ class ContainerPerformanceObserver implements PerformanceObserver {
     resolvedRootData.lastPaintedElement = entry.element;
     resolvedRootData.startTime = entry.startTime; // For images this will either be the load time or render time
     resolvedRootData.damagedRects?.add(entry.intersectionRect);
+    // intersectionRect should default to the first entry's intersectionRect then build from where onwards
+    if (resolvedRootData.intersectionRect) {
+      resolvedRootData.intersectionRect = ContainerPerformanceObserver.extend(
+        resolvedRootData.intersectionRect,
+        entry.intersectionRect,
+      );
+    } else {
+      resolvedRootData.intersectionRect = entry.intersectionRect;
+    }
+
     // size won't be super accurate as it doesn't take into account overlaps
     resolvedRootData.size += incomingEntrySize;
     resolvedRootData.identifier ||= closestRoot.getAttribute("containertiming");
@@ -438,6 +411,31 @@ class ContainerPerformanceObserver implements PerformanceObserver {
       rectB.top > rectA.bottom ||
       rectB.bottom < rectA.top
     );
+  }
+
+  // This is used for merging DOMRectReadOnly's together into a bigger rect
+  static extend(
+    rectA: DOMRectReadOnly,
+    rectB: DOMRectReadOnly,
+  ): DOMRectReadOnly {
+    const left = Math.min(rectA.left, rectB.left);
+    const top = Math.min(rectA.top, rectB.top);
+    const right = Math.max(rectA.right, rectB.right);
+    const bottom = Math.max(rectA.bottom, rectB.bottom);
+
+    const result = {
+      left,
+      top,
+      x: left,
+      y: top,
+      width: right - left,
+      height: bottom - top,
+      right,
+      bottom,
+      toJSON: () => this,
+    };
+
+    return result;
   }
 
   static isEmptyRect(rect: DOMRectReadOnly): boolean {
@@ -511,14 +509,10 @@ class ContainerPerformanceObserver implements PerformanceObserver {
           resolvedRootData.firstRenderTime,
           resolvedRootData.lastPaintedElement,
           resolvedRootData.damagedRects,
+          resolvedRootData.intersectionRect ?? new DOMRectReadOnly(),
         );
 
         containerEntries.push(containerCandidate);
-
-        if (this.debug) {
-          const rects = lastResolvedData?.damagedRects;
-          ContainerPerformanceObserver.paintDebugOverlay(rects);
-        }
       });
 
       return containerEntries;
