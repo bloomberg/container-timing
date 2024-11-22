@@ -328,6 +328,7 @@ class ContainerPerformanceObserver implements PerformanceObserver {
     // There's a weird bug where we sometimes get a load of empty rects (all zero'd out)
     // https://issues.chromium.org/issues/379844652
     // https://github.com/bloomberg/container-timing/issues/8
+    // The other reason this can happen is if an element renders "off screen", which is expected behavior (test case: https://fluoridated-bow-church.glitch.me/)
     if (ContainerPerformanceObserver.isEmptyRect(entry.intersectionRect)) {
       return;
     }
@@ -481,7 +482,11 @@ class ContainerPerformanceObserver implements PerformanceObserver {
 
       const closestRoot = element.closest(containerTimingAttrSelector);
       if (
-        element.getAttribute("elementtiming") === INTERNAL_ATTR_NAME &&
+        // We should check the element is directly a `containertiming` element or
+        // its one of our own `elementtiming` elements which we polyfilled
+        // The former is because you can apply `containertiming` to a <p> and it should still work
+        (element.getAttribute("elementtiming") === INTERNAL_ATTR_NAME ||
+          element.hasAttribute("containertiming")) &&
         closestRoot
       ) {
         this.emitNewAreaPainted(entry as PerformanceElementTiming, closestRoot);
