@@ -33,6 +33,8 @@ const containerRoots = new Set<Element>();
 const containerRootDataMap = new Map<Element, ResolvedRootData>();
 // Keep track of containers that need updating (sub elements have painted), this is reset between observer callbacks
 const containerRootUpdates = new Set<Element>();
+// Keep track of processed elements
+const observedElements = new WeakSet();
 // Keep track of the last set of resolved data so it can be shown in debug mode
 let lastResolvedData: Partial<{
   damagedRects: Set<DOMRectReadOnly>;
@@ -60,30 +62,34 @@ const mutationObserverCallback = (mutationList: MutationRecord[]) => {
   for (const mutation of mutationList) {
     if (mutation.type === "childList" && mutation.addedNodes.length) {
       for (const node of Array.from(mutation.addedNodes)) {
-        if (node.nodeType !== 1) {
-          continue;
+        if (
+          node.nodeType === Node.ELEMENT_NODE &&
+          !observedElements.has(node)
+        ) {
+          // At this point we can be certain we're dealing with an element
+          const element = node as Element;
+
+          // If the element is a descendent of an ignored container we should skip
+          if (element.closest(containerTimingIgnoreSelector)) {
+            continue;
+          }
+
+          // Theres a chance the new sub-tree injected is a descendent of a container that was already in the DOM
+          // Go through the container have currently and check..
+          if (element.closest(containerTimingAttrSelector)) {
+            // Set on the element itself
+            ContainerPerformanceObserver.setElementTiming(element);
+            // Set on the elements children (if any)
+            ContainerPerformanceObserver.setDescendants(element);
+            continue;
+          }
+
+          // If there's no containers above, we should check for containers inside
+          findContainers(element);
+
+          // Mark the element as processed
+          observedElements.add(node);
         }
-
-        // At this point we can be certain we're dealing with an element
-        const element = node as Element;
-
-        // If the element is a descendent of an ignored container we should skip
-        if (element.closest(containerTimingIgnoreSelector)) {
-          continue;
-        }
-
-        // Theres a chance the new sub-tree injected is a descendent of a container that was already in the DOM
-        // Go through the container have currently and check..
-        if (element.closest(containerTimingAttrSelector)) {
-          // Set on the element itself
-          ContainerPerformanceObserver.setElementTiming(element);
-          // Set on the elements children (if any)
-          ContainerPerformanceObserver.setDescendants(element);
-          continue;
-        }
-
-        // If there's no containers above, we should check for containers inside
-        findContainers(element);
       }
     }
   }
@@ -91,19 +97,11 @@ const mutationObserverCallback = (mutationList: MutationRecord[]) => {
 
 // Wait until the DOM is ready then start collecting elements needed to be timed.
 if (!native_implementation_available) {
-  console.debug("Enabling polyfill");
-  document.addEventListener("DOMContentLoaded", () => {
-    mutationObserver = new window.MutationObserver(mutationObserverCallback);
+  console.debug("Enabling Container Timing polyfill");
+  mutationObserver = new window.MutationObserver(mutationObserverCallback);
 
-    const config = { attributes: false, childList: true, subtree: true };
-    mutationObserver.observe(document, config);
-
-    const elms = document.querySelectorAll(containerTimingAttrSelector);
-    elms.forEach((elm) => {
-      containerRoots.add(elm);
-      ContainerPerformanceObserver.setDescendants(elm);
-    });
-  });
+  const config = { attributes: false, childList: true, subtree: true };
+  mutationObserver.observe(document.documentElement, config);
 } else {
   console.debug("Native implementation of Container Timing available");
 }
