@@ -34,6 +34,7 @@
 1. [Considered alternatives](#considered-alternatives)
 1. [Questions](#questions)
 1. [Implementation](#implementation-work)
+1. [Browser extension](#extension)
 1. [Glossary](#glossary)
 1. [Links](#links--further-reading)
 
@@ -253,6 +254,10 @@ Finally tracking of all rectangles in user space may not be as efficient as the 
 - [https://chromium-review.googlesource.com/c/chromium/src/+/5713794/2](https://chromium-review.googlesource.com/c/chromium/src/+/5713794/2)
 - [https://chromium-review.googlesource.com/c/chromium/src/+/5741652/1](https://chromium-review.googlesource.com/c/chromium/src/+/5741652/1)
 - [https://chromium-review.googlesource.com/c/chromium/src/+/5783139](https://chromium-review.googlesource.com/c/chromium/src/+/5783139)
+
+## Browser Extension
+
+You can try out the Chrome extension [here](https://github.com/jdapena/container-timing-extension). You will need to build it manually for now and load the browser with it set as an argument.
 
 ## Glossary
 
