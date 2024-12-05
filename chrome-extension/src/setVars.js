@@ -1,0 +1,1 @@
+window.ctDebug = true;
