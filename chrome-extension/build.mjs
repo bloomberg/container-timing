@@ -20,7 +20,7 @@ const context = await esbuild
                 from: ["./public/**/*"],
                 to: ["./build"]
             }, {
-                from: ["./container-timing/polyfill/polyfill.js"],
+                from: ["../polyfill/polyfill.js"],
                 to: ["./build"]
             },
             {
