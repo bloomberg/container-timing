@@ -13,7 +13,6 @@ You will need a version of node.js on you machine, preferably v20+.
 
 The steps to setup this project are:
 
-1. Clone the repo and run `git submodule update --init`
 1. `npm i`
 1. `npm run install-container-timing-polyfill`
 1. `npm run build`.
@@ -25,5 +24,5 @@ Suggestions and pull requests are welcomed!.
 
 ---
 
-This project was bootstrapped with [Chrome Extension CLI](https://github.com/dutiyesh/chrome-extension-cli)
+This folder was bootstrapped with [Chrome Extension CLI](https://github.com/dutiyesh/chrome-extension-cli)
 
