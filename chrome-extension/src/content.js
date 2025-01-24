@@ -1,3 +1,4 @@
+import { showRectsOnScreen, showBoundingRect, clearRects, clearRectsWithDelay } from '../../demo-overlays/demo-overlays.js'
 // Don't re-run operation after selector has been seen
 let flag = false;
 // Default selector
@@ -13,13 +14,13 @@ chrome.storage.sync.get(
   }
 );
 
-
-const observer = new MutationObserver(() => {
+function maybeStartPerformanceObserve() {
   if ((elm = document.querySelector(selector)) && !flag) {
-    startPerformanceObserve(elm)
+    startPerformanceObserve(elm);
   }
-});
-
+}
+const observer = new MutationObserver(maybeStartPerformanceObserve);
+maybeStartPerformanceObserve();
 observer.observe(document.documentElement, { attributes: false, childList: true, characterData: false, subtree: true });
 
 function startPerformanceObserve(elm) {
@@ -32,7 +33,7 @@ function startPerformanceObserve(elm) {
         showRectsOnScreen(list.damagedRects);
       }
       showBoundingRect(list.intersectionRect);
-      clearRects(true)
+      clearRectsWithDelay(5000);
     })
     // Now hide the rects so they're not in the way
 
@@ -45,37 +46,3 @@ function startPerformanceObserve(elm) {
   flag = true;
 }
 
-function showRectsOnScreen(rects) {
-  // TODO We may want to batch these DOM updates
-  rects.forEach((rect) => {
-    const div = document.createElement('div');
-    div.classList.add('overlay');
-    div.style.left = `${rect.left}px`;
-    div.style.top = `${rect.top}px`;
-    div.style.width = `${rect.width}px`;
-    div.style.height = `${rect.height}px`;
-    document.body.appendChild(div);
-  });
-}
-
-function showBoundingRect(rect) {
-  const div = document.createElement('div');
-  div.classList.add('boundingRect');
-  div.style.left = `${rect.left}px`;
-  div.style.top = `${rect.top}px`;
-  div.style.width = `${rect.width}px`;
-  div.style.height = `${rect.height}px`;
-  document.body.appendChild(div);
-}
-
-function clearRects(withDelay = false) {
-  if (withDelay) {
-    return setTimeout(() => {
-      document.querySelectorAll('.overlay').forEach(elm => elm.remove());
-      document.querySelectorAll('.boundingRect').forEach(elm => elm.remove());
-    }, 5000);
-  }
-
-  document.querySelectorAll('.overlay').forEach(elm => elm.remove());
-  document.querySelectorAll('.boundingRect').forEach(elm => elm.remove());
-}

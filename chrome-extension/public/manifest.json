@@ -20,7 +20,7 @@
         "*://*/*"
       ],
       "css": [
-        "content.css"
+        "demo-overlays.css"
       ],
       "js": [
         "setVars.js",
