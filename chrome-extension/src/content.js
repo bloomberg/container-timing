@@ -28,7 +28,9 @@ function startPerformanceObserve(elm) {
     console.log("Container timing entries from " + href)
     list.getEntries().forEach((list) => {
       clearRects();
-      showRectsOnScreen(list.damagedRects);
+      if (list?.damagedRects) {
+        showRectsOnScreen(list.damagedRects);
+      }
       showBoundingRect(list.intersectionRect);
       clearRects(true)
     })
