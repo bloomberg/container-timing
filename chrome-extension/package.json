@@ -1,7 +1,7 @@
 {
   "name": "container-timing",
   "version": "0.1.0",
-  "description": "My Chrome Extension",
+  "description": "ContainerTiming Chrome demo extension",
   "private": true,
   "scripts": {
     "watch": "node ./build.mjs --watch",
