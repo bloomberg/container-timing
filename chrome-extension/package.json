@@ -5,8 +5,9 @@
   "private": true,
   "scripts": {
     "watch": "node ./build.mjs --watch",
-    "build": "npm run build:container-timing-polyfill && node ./build.mjs --production",
+    "build": "npm run build:container-timing-polyfill && npm run build:container-timing-demo-overlays && node ./build.mjs --production",
     "build:container-timing-polyfill": "npm run build --prefix ../polyfill",
+    "build:container-timing-demo-overlays": "npm run build --prefix ../demo-overlays",
     "install-container-timing-polyfill": "npm i --prefix ../polyfill"
   },
   "devDependencies": {

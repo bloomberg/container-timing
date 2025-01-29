@@ -5,10 +5,10 @@ const production = process.argv[2] === "--production";
 
 const context = await esbuild
   .context({
-    entryPoints: ["./src/content.js", "./src/content.css"],
+    entryPoints: ["./src/content.js"],
     bundle: true,
     outdir: "build",
-    format: "iife",
+    format: "esm",
     sourcemap: !production,
     minify: production,
     platform: "browser",
@@ -21,6 +21,10 @@ const context = await esbuild
                 to: ["./build"]
             }, {
                 from: ["../polyfill/polyfill.js"],
+                to: ["./build"]
+            },
+            {
+                from: ["../demo-overlays/demo-overlays.css"],
                 to: ["./build"]
             },
             {

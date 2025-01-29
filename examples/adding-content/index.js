@@ -1,3 +1,6 @@
+import { showBoundingRect, showRectsOnScreen, clearRects, clearRectsWithDelay } from "../../demo-overlays/demo-overlays.js";
+window.ctDebug = true;
+
 const queryString = window.location.search;
 const urlParams = new URLSearchParams(window.location.search);
 const nestedStrategy = urlParams.get("nestedStrategy") || "ignore"
@@ -6,8 +9,13 @@ const nativeObserver = new PerformanceObserver((v) => {
   const entries = v.getEntries();
   console.log(entries);
   entries.forEach((entry) => {
+    clearRects();
+    showBoundingRect(entry.intersectionRect);
     const rects = entry?.damagedRects;
-    ContainerPerformanceObserver.paintDebugOverlay(rects);
+    if (rects) {
+      showRectsOnScreen(rects);
+    }
+    clearRectsWithDelay(15000);
   });
 });
 

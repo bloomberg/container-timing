@@ -1,8 +1,16 @@
+import { showBoundingRect, showRectsOnScreen, clearRects, clearRectsWithDelay } from "../../demo-overlays/demo-overlays.js";
+window.ctDebug = true;
+
 const observer = new PerformanceObserver((list) => {
   list.getEntries().forEach((entry) => {
+    clearRects();
     console.log(entry);
-    const rects = entry.damagedRects;
-    ContainerPerformanceObserver.paintDebugOverlay(rects);
+    showBoundingRect(entry.intersectionRect);
+    const rects = entry?.damagedRects;
+    if (rects) {
+      showRectsOnScreen(rects);
+    }
+    clearRectsWithDelay(15000);
   });
 });
 
