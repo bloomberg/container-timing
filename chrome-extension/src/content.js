@@ -27,8 +27,8 @@ function startPerformanceObserve(elm) {
   const href = document.location.href
   const nativeObserver = new PerformanceObserver((list) => {
     console.log("Container timing entries from " + href)
+    clearRects();
     list.getEntries().forEach((list) => {
-      clearRects();
       if (list?.damagedRects) {
         showRectsOnScreen(list.damagedRects);
       }

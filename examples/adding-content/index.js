@@ -8,8 +8,8 @@ const nestedStrategy = urlParams.get("nestedStrategy") || "ignore"
 const nativeObserver = new PerformanceObserver((v) => {
   const entries = v.getEntries();
   console.log(entries);
+  clearRects();
   entries.forEach((entry) => {
-    clearRects();
     showBoundingRect(entry.intersectionRect);
     const rects = entry?.damagedRects;
     if (rects) {
