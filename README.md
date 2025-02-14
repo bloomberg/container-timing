@@ -108,6 +108,7 @@ Now we describe precisely what information is exposed via the WebPerf API. The P
 - `entryType`: `"container"`
 - `startTime`: A [DOMHighResTimeStamp](https://developer.mozilla.org/en-US/docs/Web/API/DOMHighResTimeStamp) of the latest container paint time
 - `identifier`: The value of the element's containertiming attribute (empty string if it does not have it)
+- `intersectionRect`: The bounding box of all paints accumulated so far within this container
 - `size`: The size of the combined region painted (so far) within this container
 - `firstRenderTime`: A [DOMHighResTimeStamp](https://developer.mozilla.org/en-US/docs/Web/API/DOMHighResTimeStamp) of the first paint time for this container
 - `duration`: A [DOMHighResTimeStamp](https://developer.mozilla.org/en-US/docs/Web/API/DOMHighResTimeStamp) set to 0
@@ -135,6 +136,7 @@ interface PerformanceContainerTiming: PerformanceEntry {
   readonly attribute DOMString name;
   readonly attribute DOMHighResTimeStamp? startTime;
   readonly attribute DOMString identifier
+  readonly attribute DOMRectReadOnly intersectionRect;
   readonly attribute DOMHighResTimeStamp? duration;
   readonly attribute DOMHighResTimeStamp? firstRenderTime;
   readonly attribute unsigned long long size;
@@ -167,6 +169,7 @@ If the Container Timing algorithm receives paint updates from elements inside a 
    6. firstRenderTime: Set to **firstRenderTime**
    7. size: This is **PaintedRegion**.size(), representing the painted portion of the container. This is similar to the size property in LargestContentfulPaint entries
    8. lastPaintedElement: **LastPaintedElement** This is the last element that received a paint update, this allows developers to debug what caused a paint in a container.
+   9. intersectionRect: **PaintedRegion**'s rect
 8. [Queue](https://w3c.github.io/performance-timeline/#queue-a-performanceentry) the entry so that relevant PerformanceObservers are notified. The entry will not be added to the performance timeline buffer
 
 ### Life Cycle
