@@ -184,6 +184,8 @@ If the Container Timing algorithm receives paint updates from elements inside a 
 
 Nesting behaviour needs to be considered. For now we have 3 options, and we may be able to offer the developer all 3 options or we will trim this down as this proposal is developed.
 
+In the initial implementation we provide the attribute `containertiming-nesting` that accepts as a parameter the values of the different policies: `ignore` (the default), `transparent` and `shadowed`. The attribute is meaningful only on container timing roots. It defines how events from descendant container roots will be used in the parent container root.
+
 ### Ignore (default)
 
 The simplest option is to just ignore any content within an inner container. Developers may want this because once you hit an annotated boundary it will be of another concern, the developer may only want to measure the performance of their own content and not what is coming from something else. We may also want to add some ways for developers to just ignore content in general (such as ads which are out of the developer's control, see [Questions](#heading=h.elcf4k4aph14)). See below for a visual example.
@@ -251,6 +253,8 @@ Finally tracking of all rectangles in user space may not be as efficient as the 
 - As most developers will be using this for startup metrics (similar to LCP) do we want to offer an option to stop tracking on user input?
 - Do we want to populate the duration field in the `ContainerTimingPerformance` object, currently it's 0. There is an argument for it being `RenderTime - TimeOrigin`, but the `renderTime` already represents that value. So it could be `RenderTime - StartTime` so you can see the delta between the first render time and the current one.
 - As the browser paints in batches lastPaintedElement may need to be an array of elements
+- Should `containertiming-nesting` actually reflect how propagation goes to ancestors, instead of how it processes descendants?
+- What if we move from `containertiming-ignore` and `containertiming-nesting` to a single attribute that reflects how propagation upwards works, that can be set at any node, and not only in container roots? The `ignore` value would work as both `ignore` in nesting and `containertiming-ignore`. And `shadowed` would be used to explicitely hide implementation details. Should this value be different depending on the different element types?
 
 ## Implementation Work
 
