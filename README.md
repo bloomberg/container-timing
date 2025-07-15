@@ -270,7 +270,7 @@ Finally tracking of all rectangles in user space may not be as efficient as the 
 
 ## Browser Extension
 
-You can try out the Chrome extension [here](https://github.com/jdapena/container-timing-extension). You will need to build it manually for now and load the browser with it set as an argument.
+You can try out the Chrome extension [here](container-timing-extension/). Follow the [build instructions](container-timing-extension/README.md) and load the browser with it set as an argument.
 
 ## Glossary
 
