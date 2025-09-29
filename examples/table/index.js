@@ -2,8 +2,8 @@ import { showBoundingRect, showRectsOnScreen, clearRects, clearRectsWithDelay } 
 window.ctDebug = true;
 
 const observer = new PerformanceObserver((list) => {
+  clearRects();
   list.getEntries().forEach((entry) => {
-    clearRects();
     console.log(entry);
     showBoundingRect(entry.intersectionRect);
     const rects = entry?.damagedRects;

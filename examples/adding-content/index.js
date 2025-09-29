@@ -3,13 +3,12 @@ window.ctDebug = true;
 
 const queryString = window.location.search;
 const urlParams = new URLSearchParams(window.location.search);
-const nestedStrategy = urlParams.get("nestedStrategy") || "ignore"
 
 const nativeObserver = new PerformanceObserver((v) => {
   const entries = v.getEntries();
   console.log(entries);
+  clearRects();
   entries.forEach((entry) => {
-    clearRects();
     showBoundingRect(entry.intersectionRect);
     const rects = entry?.damagedRects;
     if (rects) {
@@ -19,7 +18,7 @@ const nativeObserver = new PerformanceObserver((v) => {
   });
 });
 
-nativeObserver.observe({ type: "container", nestedStrategy: nestedStrategy });
+nativeObserver.observe({ type: "container"});
 
 window.setTimeout(() => {
   const innerContainer = document.querySelector(".container div");

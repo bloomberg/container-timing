@@ -14,14 +14,16 @@ interface PerformanceElementTiming extends PerformanceEntry {
   size: number;
 }
 
+type NestedStrategy = "ignore" | "transparent" | "shadowed";
+
 interface ResolvedRootData extends PerformanceContainerTiming {
   damagedRects: Set<DOMRectReadOnly>;
   intersectionRect: DOMRectReadOnly | null;
   /** For aggregated paints keep track of the union painted rect */
   coordData?: any;
+  /** Nesting policy */
+  nesting: NestedStrategy;
 }
-
-type NestedStrategy = "ignore" | "transparent" | "shadowed";
 
 // We need to set the element timing attribute tag on all elements below "containertiming" before we can start observing
 // Otherwise no elements will be observed
@@ -175,8 +177,6 @@ class ContainerPerformanceObserver implements PerformanceObserver {
   nativePerformanceObserver: PerformanceObserver;
   // Debug flag to include extra data
   debug: boolean;
-  // Which nested strategy is set
-  nestedStrategy: NestedStrategy = "ignore";
   // We need to know if element timing has been explicitly set or not
   overrideElementTiming: boolean = false;
   // is container timing being used or should we just passthrough to the native polyfill
@@ -250,6 +250,7 @@ class ContainerPerformanceObserver implements PerformanceObserver {
       damagedRects: new Set(),
       intersectionRect: null,
       identifier: "",
+      nesting: "ignore",
       size: 0,
       startTime: 0,
       firstRenderTime: 0,
@@ -272,7 +273,7 @@ class ContainerPerformanceObserver implements PerformanceObserver {
   }
 
   observe(
-    options?: PerformanceObserverInit & { nestedStrategy: NestedStrategy },
+    options?: PerformanceObserverInit,
   ) {
     const hasOption = (name: string, options?: PerformanceObserverInit) =>
       options?.entryTypes?.includes(name) || options?.type === name;
@@ -292,7 +293,6 @@ class ContainerPerformanceObserver implements PerformanceObserver {
       }
 
       this.entryTypes = resolvedTypes;
-      this.nestedStrategy ??= options?.nestedStrategy || "ignore";
       // If we only have 1 type its preferred to use the type property, otherwise use entryTypes
       // This is to make sure buffered still works when we only have "element" set.
       this.nativePerformanceObserver.observe({
@@ -356,6 +356,7 @@ class ContainerPerformanceObserver implements PerformanceObserver {
     // size won't be super accurate as it doesn't take into account overlaps
     resolvedRootData.size += incomingEntrySize;
     resolvedRootData.identifier ||= closestRoot.getAttribute("containertiming");
+    resolvedRootData.nesting = (closestRoot.getAttribute("containertiming-nesting") as NestedStrategy) ?? "ignore";
     resolvedRootData.firstRenderTime ||= entry.renderTime;
 
     // Update States
@@ -369,13 +370,12 @@ class ContainerPerformanceObserver implements PerformanceObserver {
 
   // The container may have a parent container, if it does we should pass values up the chain
   updateParentIfExists(containerRoot: Element): void {
-    const strategy = this.nestedStrategy;
     // The containerRoot itself has this selector, so to avoid self-matching we should go one level up
     const parentRoot =
       containerRoot.parentElement?.closest("[containertiming]");
     // If there's no parent we don't need to do anything here
     // Also if we set ignore we don't need to alert any parent container
-    if (!parentRoot || strategy === "ignore") {
+    if (!parentRoot) {
       return;
     }
 
@@ -385,6 +385,8 @@ class ContainerPerformanceObserver implements PerformanceObserver {
       );
     const resolvedParentData =
       ContainerPerformanceObserver.getResolvedDataFromContainerRoot(parentRoot);
+    if (resolvedParentData.nesting == "ignore")
+      return;
 
     const rFRT = resolvedData.firstRenderTime ?? Infinity;
     const rpFRT = resolvedParentData.firstRenderTime ?? Infinity;
