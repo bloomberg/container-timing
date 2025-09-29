@@ -244,6 +244,13 @@ Container Timing is now available in Chrome Canary behind a flag. To enable it:
 
 You can try out the Chrome extension [here](./chrome-extension/README.md). You will need to build it manually for now and load the browser with it set as an argument. For the extension to work you will need to have the experimental web platform features flag enabled in Chrome (see above).
 
+Once you have the browser running with Container Timing enabled, you can run:
+
+- `$ npm i`
+- `$ npm run start`
+
+in the root of this repo and it should load up the examples for you to try out.
+
 ## Considered alternatives
 
 ### Element Timing everywhere
