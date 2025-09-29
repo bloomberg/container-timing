@@ -30,7 +30,9 @@
    1. [Built-in containers](#built-in-containers)
    1. [Shadow DOM](#shadow-dom)
 1. [Security and Privacy](#security-and-privacy)
-1. [Polyfill](#polyfill)
+1. [How do we try this?](#how-do-we-try-this-out)
+   1. [Polyfill](#polyfill)
+   1. [Browser Extension](#browser-extension)
 1. [Considered alternatives](#considered-alternatives)
 1. [Questions](#questions)
 1. [Implementation](#implementation-work)
@@ -222,10 +224,25 @@ The cross-frame boundary is not breached: elements belonging to iframes are not 
 
 Most of the information provided by this API can already be estimated, even if in tedious ways. Element Timing returns the first rendering time for images and text. The PaintTiming API could be used to compute a related timestamp for all the elements within a container root (see [Polyfill](#heading=h.3wxxpyowvuit)).
 
-## Polyfill
+## How do we try this out?
+
+### Polyfill
 
 - See [Polyfill](./docs/polyfill.md)
 - See [Polyfill Performance Impact](./docs/performance-impact.md)
+
+## Chrome Canary and Chrome Beta
+
+Container Timing is now available in Chrome Canary behind a flag. To enable it:
+
+1. Open `chrome://flags/#enable-experimental-web-platform-features`
+2. Set it to `Enabled`
+3. Restart the browser
+4. Open DevTools, go to the console and run `PerformanceObserver.supportedEntryTypes`, you should see `container` in the list of supported entry types.
+
+### Browser Extension
+
+You can try out the Chrome extension [here](./chrome-extension/README.md). You will need to build it manually for now and load the browser with it set as an argument. For the extension to work you will need to have the experimental web platform features flag enabled in Chrome (see above).
 
 ## Considered alternatives
 
@@ -267,10 +284,6 @@ Finally tracking of all rectangles in user space may not be as efficient as the 
 - [https://chromium-review.googlesource.com/c/chromium/src/+/6533016](https://chromium-review.googlesource.com/c/chromium/src/+/6533016)
 - [https://chromium-review.googlesource.com/c/chromium/src/+/6533017](https://chromium-review.googlesource.com/c/chromium/src/+/6533017)
 - [https://chromium-review.googlesource.com/c/chromium/src/+/6270777](https://chromium-review.googlesource.com/c/chromium/src/+/6270777)
-
-## Browser Extension
-
-You can try out the Chrome extension [here](container-timing-extension/). Follow the [build instructions](container-timing-extension/README.md) and load the browser with it set as an argument.
 
 ## Glossary
 
