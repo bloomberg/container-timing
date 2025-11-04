@@ -96,9 +96,9 @@ observerB.observe({
 });
 ```
 
-This works fine with 1 container, but nesting becomes problematic again. If we have nested containers, how do we handle the different rules for each observer? Do they conflict? is there a single context for each "tree" of containers?
+This works fine with 1 container, but nesting becomes problematic again. If we have nested containers, how do we handle the different rules for each observer? They will almost certainly conflict as right now all containers are global.
 
-For instance, if container rules were global and a performance observer decides to make a container "private", it may be too late if another observer has already registered a container above which will receive entries from the inner container.
+As container rules are global if a performance observer decides to make a container "private", it may be too late if another observer has already registered a container above which will receive entries from the inner container.
 
 ```html
 <div id="outer">
