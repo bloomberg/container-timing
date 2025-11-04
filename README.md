@@ -15,10 +15,8 @@
 1. [Authors](#authors)
 1. [Introduction](#introduction)
 1. [Motivation](#motivation)
-1. [Objectives](#objectives)
-1. [Registration](#registration)
-1. [PerformanceContainerTiming](#performancecontainertiming)
-   1. [Web IDL (subject to change)](#web-idl-subject-to-change)
+1. [Objectives](#goals)
+1. [Using The API](#using-the-api)
 1. [Algorithm](#algorithm)
    1. [Life Cycle](#life-cycle)
 1. [Nested Containers Roots](#nested-container-roots)
@@ -272,13 +270,11 @@ Finally tracking of all rectangles in user space may not be as efficient as the 
 
 ## Questions
 
+- How do we register containers? Can it be done dynamically? (More [here](./docs/container-definitions.md))
 - Setting the `containertiming` attribute far up the tree could cause a lot of processing as the depth is infinite, we may need to have some limit or default depth set.
 - ~~We will want to add some way for developers to ignore certain blocks of elements without using an inner container (which would degrade performance).~~
 - As most developers will be using this for startup metrics (similar to LCP) do we want to offer an option to stop tracking on user input?
-- Do we want to populate the duration field in the `ContainerTimingPerformance` object, currently it's 0. There is an argument for it being `RenderTime - TimeOrigin`, but the `renderTime` already represents that value. So it could be `RenderTime - StartTime` so you can see the delta between the first render time and the current one.
 - As the browser paints in batches lastPaintedElement may need to be an array of elements
-- Should `containertiming-nesting` actually reflect how propagation goes to ancestors, instead of how it processes descendants?
-- What if we move from `containertiming-ignore` and `containertiming-nesting` to a single attribute that reflects how propagation upwards works, that can be set at any node, and not only in container roots? The `ignore` value would work as both `ignore` in nesting and `containertiming-ignore`. And `shadowed` would be used to explicitely hide implementation details. Should this value be different depending on the different element types?
 
 ## Implementation Work
 
