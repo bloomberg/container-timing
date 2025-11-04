@@ -148,10 +148,25 @@ The second problem with this approach is that if the container is registered bef
 
 ## Options?
 
-### Allow dynamic registration but remove private mode, or all modes entirely
+### Option 1: Keep API attribute-focused (as is)
+
+This would mean keeping everything declared in the attributes instead of anywhere else.
+
+**Pros**
+
+- Simple API just mark the HTML elements with containertiming attributes, alongside some rules you want
+- This is performant because the renderer knows the rules when its parsing the element, it doesn't need to "anticipate" which elements are going to need timing data.
+
+**Cons**
+
+- You can't have two or more observers on the same root setting different rules. If someone sets rule private it will be overwritten by someone else setting it to transparent etc
+- You can't have two or more different IDs for a container root as it is set directly on the root. A second observer would need to use whichever identifier is set, you can see more of this discussed [here](https://github.com/bloomberg/container-timing/issues/20)
+- Limited API which works well for single author, but won't help if components are observed by different users.
+- "ignore" is global
+
+### Option 2: Allow dynamic registration but remove private mode, or all modes entirely
 
 One option is to remove the private mode from the API. This would simplify the design and avoid conflicts between observers. Private was mainly used to avoid showing information from places where the containers had little interest (ads), but we have `containertiming-ignore` for that now. Ignore on its own may be enough, there isn't a strong use case for "i want a container but i don't want to propagate my timing entries".
-
 This would also mean we would need to get rid of shadowed mode too, as `"shadow"` has the same issue when registering late or having multiple observers. We could leave "shadowed" to some designated "built-in" types, such as iframes, Shadow DOM, SVG's tables etc. If you want to force shadowing you can use a shadow root for your container.
 
 **Pros**:
@@ -166,26 +181,28 @@ This would also mean we would need to get rid of shadowed mode too, as `"shadow"
 - You may not have the element yet if the DOM is not ready, in which case its impossible to register interest in a DOM root.
 - The browser would need to track every element for timing information as it won't know ahead-of-time which elements we're interested in, this could cause memory issues as every element being painted would need to store more metadata. (need to test)
 - The last container timing event you get may differ depending on when you registered, this means results may not be deterministic (even if the page is the same).
+- "containertiming-ignore" is global
 
-### Declarative Container Rules
+### Option 3: Declarative Container Rules
 
 Another option is to keep the declarative approach but apply it as a set of container rules the browser parses before it begins painting. This would allow us to set modes such as "private" or "shadowed", because they're set from the beginning.
 
 ```html
 <script type="containerrules">
-{
-  "containers": [
-    {
-      "selector": "#outer",
-      "id": "outer-container"
-    },
-    {
-      "selector": "#inner",
-      "id": "inner-container",
-      "mode": "private"
-    }
-  ]
-}
+  {
+    "containers": [
+      {
+        "selector": "#outer",
+        "id": "outer-container"
+      },
+      {
+        "selector": "#inner",
+        "id": "inner-container",
+        "mode": "private"
+      }
+    ]
+  }
+</script>
 ```
 
 ```javascript
@@ -207,3 +224,64 @@ observer.observe({ type: "container", containerId: "outer-container" });
 **Cons**:
 
 - You wouldn't be able to register new container rules dynamically (due to the issue above).
+- Ignore is global
+
+### Option 4: Do we need to start thinking in terms of "Container Trees"?
+
+All the options above treat the containers as global, any rule set on one has a global affect across all performance observers (this is why "ignore" is global in all options).
+We may need to define a "tree" of containers under a single ID and only track containers defined within that tree for that observer.
+
+How does this look? Well, we could copy Option 3 but this time allow dynamic container rules to be added.
+
+```html
+<script type="containerrules">
+    {
+      "containerTrees": {
+          "tree1": [
+            {
+              "selector": "#outer",
+              "id": "outer-container"
+            },
+            {
+              "selector": "#inner",
+              "id": "inner-container",
+              "mode": "private"
+            }
+          ],
+          "tree2": [
+            {
+              "selector": "#outer",
+              "id": "outer-container"
+            },
+            {
+              "selector": "#inner",
+              "id": "inner-container",
+            }
+          ]
+      }
+  }
+</script>
+```
+
+```javascript
+const observer = new PerformanceObserver((list) => {
+  $;
+  for (const entry of list.getEntries()) {
+    console.log(entry);
+  }
+});
+observer.observe({ type: "container", containerId: "tree1" });
+```
+
+In this scenario, adding a new container rule would not have any effect on adjacent trees, timing data for those would continue as expected. "tree1" making inner private doesn't prevent "tree2" from receiving timing information.
+
+**Pros**
+
+- Container Trees can be defined up front which declare the relationship between different containers within that tree
+- Ignoring or making private a root wouldn't have any affect on other trees.
+- Potential for dynamic containers to be added later to a tree (although the encapsulation change would still be a problem)
+
+**Cons**
+
+- Much more complicated implementation, most users of this feature wouldn't need multiple trees for performance measuring.
+- We would most likely still want a global ignore (to make life easier) for authors who just want to ignore an ad container for example
