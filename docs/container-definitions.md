@@ -218,7 +218,6 @@ This builds on Option 1 (still no modes) but instead of registering containers d
 
 ```javascript
 const observer = new PerformanceObserver((list) => {
-  $;
   for (const entry of list.getEntries()) {
     console.log(entry);
   }
