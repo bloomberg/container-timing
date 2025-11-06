@@ -87,7 +87,7 @@ flowchart LR
 
 Now that we have decoupled the container definitions from the DOM elements, the next question is how do we register these containers? and _when_ should they be registered?
 
-### _Hypothetical Example_
+### _Strawman Example_
 
 ```html
 <div class="app">
@@ -170,7 +170,7 @@ flowchart LR
   subgraph Container Registry
     direction TB
     C1["Identifier: 'observer-a'<br/>Selector: '.app'"]
-    C2["Identifier: 'observer-b'<br/>Selector: '.app'<br/>ignoreSelectorAll: ['.banner']"]
+    C2["Identifier: 'observer-b'<br/>Selector: '.app'<br/>ignoreSelectors: ['.banner']"]
   end
 
   D1 -.-> C1
@@ -210,7 +210,7 @@ This builds on Option 1 (still no modes) but instead of registering containers d
       {
         "selectorRoot": ".app",
         "id": "observer-b",
-        "ignoreSelectorAll": [".ad-banner"]}
+        "ignoreSelectors": [".ad-banner"]}
     ]
   }
 </script>
@@ -263,7 +263,7 @@ The table below compares the three primary approaches (Option 1: Dynamic Registr
 | Memory Footprint              | Potentially high (must tentatively track every node) | Low (renderer knows targets early)                        | Low (renderer knows targets early)              |
 | Determinism / Reproducibility | Low (late registration loses early paints)           | High (we can buffer the right entries)                    | High (we can buffer the right entries)          |
 | Multi-Observer Support        | Yes (isolated container defs per observer)           | Yes (isolated container defs per observer)                | No (single global definition per element)       |
-| Ignore Granularity            | Per observer via `ignoreSelectorAll`                 | Per observer via `ignoreSelectorAll`                      | Global (shared)                                 |
+| Ignore Granularity            | Per observer via `ignoreSelectors`                   | Per observer via `ignoreSelectors`                        | Global (shared)                                 |
 | Modes (private/shadow/etc.)   | Removed / implicit via encapsulation                 | Removed / could reintroduce deterministically             | Present but conflict-prone                      |
 | Initial Paint Coverage        | Risk of missing early paints if registered late      | Full (if in manifest)                                     | Full (if attributes present)                    |
 | Implementation Risk           | High: Tracking and recording all paint timings       | Medium-Low (parser + registry)                            | Low (already exists)                            |
