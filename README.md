@@ -34,6 +34,7 @@
 1. [Considered alternatives](#considered-alternatives)
 1. [Questions](#questions)
 1. [Implementation](#implementation-work)
+1. [Standards Positions](#standards-positions)
 1. [Browser extension](#extension)
 1. [Glossary](#glossary)
 1. [Links](#links--further-reading)
@@ -126,8 +127,6 @@ If you want wish to ignore parts of the DOM tree you are monitoring, you can add
 </div>
 ```
 
-_TODO: needs adding to the polyfill_
-
 ### Web IDL (subject to change)
 
 ```idl
@@ -180,41 +179,41 @@ If the Container Timing algorithm receives paint updates from elements inside a 
   <img alt="Diagram showing the life cycle of events when the container is being painted." src="./docs/img/life-cycle-light.svg">
 </picture>
 
-## Nested Container Roots
+### Ignoring parts of the DOM
 
-Nesting behaviour needs to be considered. For now we have 3 options, and we may be able to offer the developer all 3 options or we will trim this down as this proposal is developed.
+You can use the `containertimingignore` attribute to ignore parts of the DOM tree inside a container root. Any elements inside a container root with this attribute will not be counted towards any paint updates for the parent container root.
 
-In the initial implementation we provide the attribute `containertiming-nesting` that accepts as a parameter the values of the different policies: `ignore` (the default), `transparent` and `shadowed`. The attribute is meaningful only on container timing roots. It defines how events from descendant container roots will be used in the parent container root.
+```mermaid
+graph LR
+  classDef note fill:none,stroke:none,color:#ddd,font-size:14px
+  classDef gray fill:#2a2a2a,stroke:#555,color:#bbb
+  classDef green fill:#2e6f2e,stroke:#1f4d1f,color:#fff
 
-### Ignore (default)
+  %% Annotations
+  N1["Only elements directly inside 'wrap' are counted for paint timing"]:::note --> A
+  N2["These elements are ignored and not counted towards any perf entries"]:::note --> I
 
-The simplest option is to just ignore any content within an inner container. Developers may want this because once you hit an annotated boundary it will be of another concern, the developer may only want to measure the performance of their own content and not what is coming from something else. We may also want to add some ways for developers to just ignore content in general (such as ads which are out of the developer's control, see [Questions](#heading=h.elcf4k4aph14)). See below for a visual example.
+  %% Containers
+  subgraph W[&lt;..containertiming=wrap /&gt;]
+    direction LR
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="./docs/img/nested-ignore-dark.svg">
-  <source media="(prefers-color-scheme: light)" srcset="./docs/img/nested-ignore-light.svg">
-  <img alt="Illustration showing the effect of nested containers for the ignore pattern" src="./docs/img/nested-ignore-light.svg">
-</picture>
+    A[elm]:::green
+    B[elm]:::green
 
-### Transparent
+    subgraph I[<..containertimingignore>]
+      direction TB
 
-This option ignores boundaries and assumes all elements below the container timing root are to be measured, this may be useful for developers who want to measure much larger parts of their UI (but still want to keep track of smaller components).
+        I1[elm]:::gray
+        I2[elm]:::gray
+        I3[elm]:::gray
+        I4[elm]:::gray
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="./docs/img/nested-transparent-dark.svg">
-  <source media="(prefers-color-scheme: light)" srcset="./docs/img/nested-transparent-light.svg">
-  <img alt="Illustration showing the effect of nested containers for the transparent pattern" src="./docs/img/nested-transparent-light.svg">
-</picture>
 
-### Shadowed
+    end
+  end
 
-Shadowed has the same concern as "transparent" (measuring everything below the `containertiming` root), except it will only receive the dimensions and references to the root container timing element itself. This mode would be future compatible for Shadow DOM elements if they are to be supported.
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="./docs/img/nested-shadowed-dark.svg">
-  <source media="(prefers-color-scheme: light)" srcset="./docs/img/nested-shadowed-light.svg">
-  <img alt="Illustration showing the effect of nested containers for the shadowed pattern" src="./docs/img/nested-shadowed-light.svg">
-</picture>
+style I stroke-dasharray: 5
+```
 
 ## Security and Privacy
 
@@ -224,10 +223,12 @@ Most of the information provided by this API can already be estimated, even if i
 
 ## How do we try this out?
 
-### Polyfill
+~~### Polyfill~~
 
-- See [Polyfill](./docs/polyfill.md)
-- See [Polyfill Performance Impact](./docs/performance-impact.md)
+~~- See [Polyfill](./docs/polyfill.md)~~
+~~- See [Polyfill Performance Impact](./docs/performance-impact.md)~~
+
+_The polyfill has been deprecated in favor of trying out the API in Chrome Canary or Beta._
 
 ## Chrome Canary and Chrome Beta
 
@@ -287,6 +288,12 @@ Finally tracking of all rectangles in user space may not be as efficient as the 
 - [https://chromium-review.googlesource.com/c/chromium/src/+/6533016](https://chromium-review.googlesource.com/c/chromium/src/+/6533016)
 - [https://chromium-review.googlesource.com/c/chromium/src/+/6533017](https://chromium-review.googlesource.com/c/chromium/src/+/6533017)
 - [https://chromium-review.googlesource.com/c/chromium/src/+/6270777](https://chromium-review.googlesource.com/c/chromium/src/+/6270777)
+
+## Standards Positions
+
+- Chromium: Implemented behind flag in Canary and Beta
+- Firefox: [Waiting on response](https://github.com/mozilla/standards-positions/issues/1155)
+- Webkit: Unknown
 
 ## Glossary
 
