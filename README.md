@@ -33,7 +33,7 @@
    1. [Browser Extension](#browser-extension)
 1. [Considered alternatives](#considered-alternatives)
 1. [Questions](#questions)
-1. [Implementation](#implementation-work)
+1. [W3C Specification Meetings](#w3c-specification-meetings)
 1. [Standards Positions](#standards-positions)
 1. [Browser extension](#extension)
 1. [Glossary](#glossary)
@@ -277,17 +277,35 @@ Finally tracking of all rectangles in user space may not be as efficient as the 
 - As most developers will be using this for startup metrics (similar to LCP) do we want to offer an option to stop tracking on user input?
 - As the browser paints in batches lastPaintedElement may need to be an array of elements
 
-## Implementation Work
+## W3C Specification Meetings
 
-- [https://chromium-review.googlesource.com/c/chromium/src/+/6268795](https://chromium-review.googlesource.com/c/chromium/src/+/6268795)
-- [https://chromium-review.googlesource.com/c/chromium/src/+/5713794](https://chromium-review.googlesource.com/c/chromium/src/+/5713794)
-- [https://chromium-review.googlesource.com/c/chromium/src/+/6268796](https://chromium-review.googlesource.com/c/chromium/src/+/6268796)
-- [https://chromium-review.googlesource.com/c/chromium/src/+/6268797](https://chromium-review.googlesource.com/c/chromium/src/+/6268797)
-- [https://chromium-review.googlesource.com/c/chromium/src/+/6268798](https://chromium-review.googlesource.com/c/chromium/src/+/6268798)
-- [https://chromium-review.googlesource.com/c/chromium/src/+/6270776](https://chromium-review.googlesource.com/c/chromium/src/+/6270776)
-- [https://chromium-review.googlesource.com/c/chromium/src/+/6533016](https://chromium-review.googlesource.com/c/chromium/src/+/6533016)
-- [https://chromium-review.googlesource.com/c/chromium/src/+/6533017](https://chromium-review.googlesource.com/c/chromium/src/+/6533017)
-- [https://chromium-review.googlesource.com/c/chromium/src/+/6270777](https://chromium-review.googlesource.com/c/chromium/src/+/6270777)
+December 7th 23:
+
+- [Minutes](https://docs.google.com/document/d/1Tjm2kvIkdlnxArAMQ5zfqo5OoKFmhYUDG3GZvGlz9Xc/edit#heading=h.tl59px9yt6pi)
+- [Recording](https://www.youtube.com/watch?v=MjGVtshDN7U)
+
+February 15th 2024:
+
+- [Minutes](https://docs.google.com/document/u/0/d/1EcAMmI678Wm3JheS61cwoX-hkjPWPbXkg7dX1iFlSOA)
+- [Recording](https://www.youtube.com/watch?v=--BqFf6Zxg0)
+
+May 23rd 2024:
+
+- [Minutes](https://docs.google.com/document/d/1EG9MWk8GHHCstIKLAgR6mk118guriEx6LQzx-37Li5c/edit#heading=h.r089wa3vnlz2)
+- [Recording](https://www.youtube.com/watch?v=huLJguS24rc)
+
+TPAC 2024:
+
+- [Minutes](https://docs.google.com/document/d/1wL8Re4atVHVpfKTxhFfh8TNkkK4VCBbVJ-U70q5PWjo/edit?tab=t.0#heading=h.bpc0vp4oji3n)
+- [Recording](https://www.youtube.com/watch?v=6ZUR41ouOzM)
+
+Discussion around Shadow DOM:
+
+- [Minutes](https://docs.google.com/document/d/11ou0LSZgodO6PIpd0jmgPhAr0HBNIQPwaEkET-FtfG8/edit?tab=t.0#heading=h.4pq5k0px46wq)
+
+TPAC 2025:
+
+- [Minutes](https://docs.google.com/document/d/1EbG3VL27YlzQj8bnWVRI-OUHm6WcUowYoxjYOu4RlXM/edit?tab=t.0#heading=h.lmryijwx1ur8)
 
 ## Standards Positions
 

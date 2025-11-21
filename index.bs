@@ -13,11 +13,15 @@ Abstract: This specification defines an API that enables monitoring when annotat
 Markup Shorthands: css no, markdown yes
 </pre>
 
+<pre class=anchors>
+urlPrefix: https://w3c.github.io/performance-timeline/; spec: PERFORMANCE-TIMELINE-2;
+    type: dfn; url: #dfn-queue-a-performanceentry; text: queue the PerformanceEntry;
+</pre>
 
 Introduction {#intro}
 =====================
 
-The Container Timing API enables monitoring when annotated sections of the DOM are displayed on screen and have finished their initial paint. A developer can mark subsections of the DOM with the <{html-global/containertiming}> attribute (similar to <code>elementtiming</code> for the Element Timing API) and receive performance entries when that section has been painted for the first time.
+The Container Timing API enables monitoring when annotated sections of the DOM are displayed on screen and have finished their initial paint. A developer can mark subsections of the DOM with the {{containertiming}} attribute (similar to <code>elementtiming</code> for the Element Timing API) and receive performance entries when that section has been painted for the first time.
 
 This API allows developers to measure the timing of various components in their pages. As developers increasingly organize their applications into components, there's a growing demand to measure performance on subsections of an application or a web page.
 
@@ -44,7 +48,7 @@ Usage Example {#example-usage}
 The following example demonstrates how to register a container root and observe its paint timings.
 
 <div class="example">
-Registration is on a per-element basis using the <{html-global/containertiming}> attribute:
+Registration is on a per-element basis using the {{containertiming}} attribute:
 
 ```html
 <div containertiming="foobar">
@@ -72,7 +76,7 @@ Ignoring Subtrees {#ignoring-subtrees}
 ---------------------------------------
 
 <div class="example">
-Parts of the DOM tree can be ignored using the <{html-global/containertiming-ignore}> attribute:
+Parts of the DOM tree can be ignored using the {{containertiming-ignore}}> attribute:
 
 ```html
 <div containertiming="foobar">
@@ -86,9 +90,9 @@ Parts of the DOM tree can be ignored using the <{html-global/containertiming-ign
 Terminology {#terminology}
 ===========================
 
-A <dfn export>container root</dfn> is an {{Element}} that has the <{html-global/containertiming}> attribute.
+A <dfn export>container root</dfn> is an {{Element}} that has the {{containertiming}} attribute.
 
-An <dfn export>ignored subtree</dfn> is a subtree rooted at an {{Element}} with the <{html-global/containertiming-ignore}> attribute.
+An <dfn export>ignored subtree</dfn> is a subtree rooted at an {{Element}} with the {{containertiming-ignore}}> attribute.
 
 A <dfn export>painted region</dfn> is a region (collection of rectangles) representing all the painted portions of a [=container root=] accumulated since it was first observed.
 
@@ -112,7 +116,7 @@ interface PerformanceContainerTiming : PerformanceEntry {
 <div dfn-for="PerformanceContainerTiming">
 A {{PerformanceContainerTiming}} object reports timing information for a [=container root=].
 
-The <dfn attribute>identifier</dfn> attribute returns the value of the <{html-global/containertiming}> attribute of the [=container root=].
+The <dfn attribute>identifier</dfn> attribute returns the value of the {{containertiming}} attribute of the [=container root=].
 
 The <dfn attribute>intersectionRect</dfn> attribute returns a {{DOMRectReadOnly}} representing the bounding box of all paints accumulated so far within this [=container root=].
 
@@ -150,13 +154,13 @@ partial interface Element {
 <div dfn-for="Element">
 The <dfn attribute>containertiming</dfn> attribute is a {{DOMString}} that identifies the element as a [=container root=]. The value becomes the {{PerformanceContainerTiming/identifier}} in the corresponding {{PerformanceContainerTiming}} entry.
 
-The <dfn attribute>containertimingIgnore</dfn> attribute, when present, marks the element and its descendants as an [=ignored subtree=] that should not contribute to container timing measurements for ancestor [=container roots=].
+The <dfn attribute>containertiming-ignore</dfn> attribute, when present, marks the element and its descendants as an [=ignored subtree=] that should not contribute to container timing measurements for ancestor [=container roots=].
 </div>
 
 Registering Container Roots {#registering-containers}
 ------------------------------------------------------
 
-When an {{Element}} with a <{html-global/containertiming}> attribute is connected to the document:
+When an {{Element}} with a [^containertiming^] content attribute is connected to the document:
 
 1. The user agent must register the element as a [=container root=].
 2. The user agent must initialize an empty [=painted region=] for the [=container root=].
@@ -168,7 +172,7 @@ Reporting Paint Updates {#reporting-paint-updates}
 When the rendering engine paints one or more elements within a [=container root=]:
 
 <div algorithm="report container paint">
-To <dfn>report a container paint</dfn> given a [=container root=] |containerRoot| and a list of painted rectangles |rects|:
+To report a container paint given a [=container root=] |containerRoot| and a list of painted rectangles |rects|:
 
 1. Let |paintedRegionUpdated| be false.
 2. Let |renderTime| be the current high resolution time.
@@ -184,7 +188,7 @@ To <dfn>report a container paint</dfn> given a [=container root=] |containerRoot
     5. Set |lastPaintedElement| to the {{Element}} associated with |rect|.
 8. If |paintedRegionUpdated| is false, return.
 9. [=Queue a PerformanceContainerTiming entry=] with:
-    * identifier: the value of |containerRoot|'s <{html-global/containertiming}> attribute
+    * identifier: the value of |containerRoot|'s {{containertiming}} attribute
     * startTime: |renderTime|
     * firstRenderTime: |firstRenderTime|
     * intersectionRect: the bounding rectangle of |paintedRegion|
@@ -205,7 +209,7 @@ To <dfn>queue a PerformanceContainerTiming entry</dfn> given |identifier|, |star
     * {{PerformanceContainerTiming/intersectionRect}}: |intersectionRect|
     * {{PerformanceContainerTiming/size}}: |size|
     * {{PerformanceContainerTiming/lastPaintedElement}}: |lastPaintedElement|
-2. [=Queue the PerformanceEntry=] |entry|.
+2.  <a>Queue the PerformanceEntry</a> |entry|
 3. Do not add |entry| to the performance timeline buffer.
 
 Note: Container timing entries are only delivered to {{PerformanceObserver}}s and are not added to the Performance Timeline buffer to avoid memory overhead from potentially frequent updates.
