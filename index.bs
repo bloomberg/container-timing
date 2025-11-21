@@ -4,10 +4,10 @@ Shortname: container-timing
 Level: 1
 Status: ED
 Group: webperf
-URL: https://github.com/bloomberg/container-timing
+URL: https://bloomberg.github.io/container-timing/
 Repository: https://github.com/bloomberg/container-timing
 Test Suite: https://github.com/web-platform-tests/wpt/tree/master/container-timing
-Editor: Jason Williams, Bloomberg, jasonwilliams4@bloomberg.net
+Editor: Jason Williams, Bloomberg
 Editor: José Dapena Paz, Igalia, jdapena@igalia.com
 Abstract: This specification defines an API that enables monitoring when annotated sections of the DOM are displayed on screen and have finished their initial paint.
 Markup Shorthands: css no, markdown yes
