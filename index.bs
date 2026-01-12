@@ -42,6 +42,13 @@ Developers want to measure when subsections of the DOM have been painted, such a
 
 Web authors know their domain better than anyone else and want to communicate the performance of their own content blocks in ways their users or organization would understand (e.g., ["time to first tweet"](https://youtu.be/1jGaov-4ZcQ?si=KBBmjPIl6L3-JUSp&t=2904)).
 
+Life Cycle {#life-cycle}
+------------------------
+In this example life cycle a component will paint multiple pieces of content at different times, each of these times will generate a new {{PerformanceContainerTiming}} entry with updated information.
+
+However, once a region has been painted, subsequent paints of that same region will not generate new entries.
+<img src="docs/img/life-cycle-dark.svg" style="background: transparent;" />
+
 Usage Example {#example-usage}
 ===============================
 
@@ -76,7 +83,7 @@ Ignoring Subtrees {#ignoring-subtrees}
 ---------------------------------------
 
 <div class="example">
-Parts of the DOM tree can be ignored using the {{containertiming-ignore}}> attribute:
+Parts of the DOM tree can be ignored using the <{{containertiming-ignore}}> attribute:
 
 ```html
 <div containertiming="foobar">
@@ -111,28 +118,36 @@ interface PerformanceContainerTiming : PerformanceEntry {
     readonly attribute DOMHighResTimeStamp firstRenderTime;
     readonly attribute Element? lastPaintedElement;
 };
+
+PerformanceContainerTiming includes PaintTimingMixin;
 </pre>
 
 <div dfn-for="PerformanceContainerTiming">
-A {{PerformanceContainerTiming}} object reports timing information for a [=container root=].
+Each {{PerformanceContainerTiming}} object has these associated concepts:
+* An <dfn for="ContainerTiming">identifier</dfn> initially set to an empty string.
+* An <dfn for="ContainerTiming">intersectionRect</dfn> initially set to a {{DOMRectReadOnly}} with all values set to 0.
+* A <dfn for="ContainerTiming">size</dfn> initially set to 0.
+* A <dfn for="ContainerTiming">firstRenderTime</dfn> initially set to 0.
+* A <dfn for="ContainerTiming">lastPaintedElement</dfn> containing the associated {{Element}}, initially set to <code>null</code>.
 
-The <dfn attribute>identifier</dfn> attribute returns the value of the {{containertiming}} attribute of the [=container root=].
+The {{PerformanceEntry/entryType}} attribute's getter must return the {{DOMString}} <code>"container"</code>.
 
-The <dfn attribute>intersectionRect</dfn> attribute returns a {{DOMRectReadOnly}} representing the bounding box of all paints accumulated so far within this [=container root=].
-
-The <dfn attribute>size</dfn> attribute returns the size in pixels of the combined [=painted region=] within this [=container root=].
-
-The <dfn attribute>firstRenderTime</dfn> attribute returns a {{DOMHighResTimeStamp}} indicating when the [=container root=] was first painted.
-
-The <dfn attribute>lastPaintedElement</dfn> attribute returns the {{Element}} that was most recently painted within the [=container root=], or null if no element has been painted yet.
-
-The {{PerformanceEntry/entryType}} attribute must return "<code>container</code>".
-
-The {{PerformanceEntry/name}} attribute must return the empty string.
-
-The {{PerformanceEntry/startTime}} attribute must return the {{DOMHighResTimeStamp}} of the latest paint time for this [=container root=].
+The {{PerformanceEntry/name}} attribute's getter must return the empty string.
 
 The {{PerformanceEntry/duration}} attribute must return 0.
+
+The {{PerformanceEntry/startTime}} attribute's getter must return the value of [=this=]'s {{ContainerTiming/renderTime}}.
+
+The <dfn attribute>identifier</dfn> attribute must return the value of [=this=]'s [=ContainerTiming/identifier=].
+
+The <dfn attribute>intersectionRect</dfn> attribute must return the value of [=this=]'s [=ContainerTiming/intersectionRect=].
+
+The <dfn attribute>size</dfn> attribute must return the value of [=this=]'s [=ContainerTiming/size=].
+
+The <dfn attribute>firstRenderTime</dfn> attribute must return the value of [=this=]'s [=ContainerTiming/firstRenderTime=].
+
+The <dfn attribute>lastPaintedElement</dfn> attribute must return the value of [=this=]'s [=ContainerTiming/lastPaintedElement=].
+
 </div>
 
 Processing Model {#processing-model}
@@ -144,6 +159,11 @@ This allows developers to detect support for container timing.
 
 Extensions to the {{Element}} Interface {#extensions-to-element}
 ----------------------------------------------------------------
+
+<em>This section will be removed once the [[DOM]] specification had been modified.<em>
+
+We extend the {{Element}} interface as follows:
+
 <pre class="idl">
 partial interface Element {
     [CEReactions] attribute DOMString containertiming;
@@ -166,6 +186,26 @@ When an {{Element}} with a [^containertiming^] content attribute is connected to
 2. The user agent must initialize an empty [=painted region=] for the [=container root=].
 3. The user agent must track all paint operations within the [=container root=]'s subtree, excluding any [=ignored subtrees=].
 
+Report Container Timing Updates {#reporting-updates}
+----------------------------------------------------
+
+When asked to <dfn>report a container paint</dfn> given a {{Document}} |document|, a [=PaintTimingMixin/paint timing info=] |paintTimingInfo|, an [=ordered set=] of [=pending image records=] |paintedImages|, and an [=ordered set=] of [=/elements=] |paintedTextNodes|, perform the following steps:
+
+    1. [=list/For each=] |record| of |paintedImages|:
+        1. Let |imageElement| be |record|'s [=pending image record/element=].
+        1. If |imageElement| is not [=exposed for paint timing=], given |document|, continue.
+        1. Let |intersectionRect| be the value returned by the intersection rect algorithm using |imageElement| as the target and viewport as the root.
+        1. <a>Potentially add a ContainerTiming entry</a> with |paintTimingInfo|, |imageElement|, |intersectionRect| and |document|.
+    1. [=list/For each=] |textNode| of |paintedTextNodes|,
+        1. If |textNode| is not [=exposed for paint timing=], given |document|, continue.
+        1. Let |textNodeElement| be the <a>set of owned text nodes</a> owning element.
+        1. Let |intersectionRect| be an empty rectangle.
+        1. [=set/For each=] {{Text}} <a>node</a> |text| of |textNode|'s <a>set of owned text nodes</a>:
+            1. Augment |intersectionRect| to be smallest rectangle containing the border box of |text| and |intersectionRect|.
+        1. Intersect |intersectionRect| with the visual viewport.
+        1. <a>Potentially add a ContainerTiming entry</a> with |paintTimingInfo|, |textNodeElement|, |intersectionRect| and |document|.
+
+<!--
 Reporting Paint Updates {#reporting-paint-updates}
 ---------------------------------------------------
 
@@ -214,6 +254,26 @@ To <dfn>queue a PerformanceContainerTiming entry</dfn> given |identifier|, |star
 
 Note: Container timing entries are only delivered to {{PerformanceObserver}}s and are not added to the Performance Timeline buffer to avoid memory overhead from potentially frequent updates.
 </div>
+-->
+
+Contributes to Container Timing {#contributes-to-container-timing}
+--------------------------------
+
+An {{Element}} contributes to the container timing of a [=container root=] if all of the following are true:
+
+- It is a descendant of the [=container root=].
+- It is not within an [=ignored subtree=].
+- It is not in a shadow tree.
+
+<div algorithm="determine contribution to container timing">
+To determine whether an {{Element}} |element| contributes to the container timing of a [=container root=] |containerRoot|:
+
+1. If |element| is null, return false.
+2. If |element| is in a shadow tree, return false.
+3. If |element| is not a descendant of |containerRoot|, return false.
+4. If |element| is within an [=ignored subtree=], return false.
+5. Return true.
+    </div>
 
 Security and Privacy Considerations {#security-privacy}
 =======================================================
