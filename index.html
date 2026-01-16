@@ -7,7 +7,7 @@
   <link href="https://www.w3.org/StyleSheets/TR/2021/W3C-ED" rel="stylesheet">
   <meta content="Bikeshed version 3c53a5b02, updated Thu Nov 27 17:03:30 2025 +0000" name="generator">
   <link href="https://bloomberg.github.io/container-timing/" rel="canonical">
-  <meta content="3b7b029b8d4e9a079d25ad37d8b7568314a6e347" name="revision">
+  <meta content="b0312e699f9b3155e6215b3230b3be6a675787ab" name="revision">
   <meta content="dark light" name="color-scheme">
   <link href="https://www.w3.org/StyleSheets/TR/2021/dark.css" media="(prefers-color-scheme: dark)" rel="stylesheet" type="text/css">
 <style>/* Boilerplate: style-autolinks */
@@ -742,7 +742,7 @@ var[data-var-color="6"] { --var-vg: #FFBCF2; }
 </p>
    <h1 class="no-ref p-name" id="title">Container Timing API</h1>
    <p id="w3c-state"><a href="https://www.w3.org/standards/types/#ED">Editor’s Draft</a>,
-    <time class="dt-updated" datetime="2026-01-15">15 January 2026</time></p>
+    <time class="dt-updated" datetime="2026-01-16">16 January 2026</time></p>
    <details open>
     <summary>More details about this document</summary>
     <div data-fill-with="spec-metadata">
@@ -790,7 +790,11 @@ var[data-var-color="6"] { --var-vg: #FFBCF2; }
    <h2 class="no-num no-ref no-toc" id="contents">Table of Contents</h2>
    <ol class="toc">
     <li><a href="#intro"><span class="secno">1</span> <span class="content">Introduction</span></a>
-    <li><a href="#motivation"><span class="secno">2</span> <span class="content">Motivation</span></a>
+    <li>
+     <a href="#motivation"><span class="secno">2</span> <span class="content">Motivation</span></a>
+     <ol class="toc">
+      <li><a href="#life-cycle"><span class="secno">2.1</span> <span class="content">Life Cycle</span></a>
+     </ol>
     <li>
      <a href="#example-usage"><span class="secno">3</span> <span class="content">Usage Example</span></a>
      <ol class="toc">
@@ -801,9 +805,17 @@ var[data-var-color="6"] { --var-vg: #FFBCF2; }
     <li>
      <a href="#processing-model"><span class="secno">6</span> <span class="content">Processing Model</span></a>
      <ol class="toc">
-      <li><a href="#extensions-to-element"><span class="secno">6.1</span> <span class="content">Extensions to the <code class="idl"><span>Element</span></code> Interface</span></a>
-      <li><a href="#registering-containers"><span class="secno">6.2</span> <span class="content">Registering Container Roots</span></a>
-      <li><a href="#reporting-paint-updates"><span class="secno">6.3</span> <span class="content">Reporting Paint Updates</span></a>
+      <li><a href="#per-document-state"><span class="secno">6.1</span> <span class="content">Per-Document State</span></a>
+      <li><a href="#extensions-to-element"><span class="secno">6.2</span> <span class="content">Extensions to the <code class="idl"><span>Element</span></code> Interface</span></a>
+      <li><a href="#container-timing-record"><span class="secno">6.3</span> <span class="content">Container Timing Record</span></a>
+      <li><a href="#registering-containers"><span class="secno">6.4</span> <span class="content">Registering Container Roots</span></a>
+      <li><a href="#reporting-updates"><span class="secno">6.5</span> <span class="content">Report Container Timing Updates</span></a>
+      <li><a href="#potentially-add-container-timing-entries"><span class="secno">6.6</span> <span class="content">Potentially add Container Timing Entries</span></a>
+      <li><a href="#getting-parent-container-root-element"><span class="secno">6.7</span> <span class="content">Getting the parent container root Element</span></a>
+      <li><a href="#contributes-to-container-timing"><span class="secno">6.8</span> <span class="content">Contributes to Container Timing</span></a>
+      <li><a href="#getting-container-root-element"><span class="secno">6.9</span> <span class="content">Getting the container root Element</span></a>
+      <li><a href="#maybe-update-last-new-painted-area"><span class="secno">6.10</span> <span class="content">Maybe Update Last New Painted Area</span></a>
+      <li><a href="#create-container-timing-entry"><span class="secno">6.11</span> <span class="content">Create a Container Timing Entry</span></a>
      </ol>
     <li>
      <a href="#security-privacy"><span class="secno">7</span> <span class="content">Security and Privacy Considerations</span></a>
@@ -860,6 +872,13 @@ var[data-var-color="6"] { --var-vg: #FFBCF2; }
      </ul>
    </ul>
    <p>Web authors know their domain better than anyone else and want to communicate the performance of their own content blocks in ways their users or organization would understand (e.g., <a href="https://youtu.be/1jGaov-4ZcQ?si=KBBmjPIl6L3-JUSp&amp;t=2904">"time to first tweet"</a>).</p>
+   <h3 class="heading settled" data-level="2.1" id="life-cycle"><span class="secno">2.1. </span><span class="content">Life Cycle</span><a class="self-link" href="#life-cycle"></a></h3>
+   
+In this example life cycle a component will paint multiple pieces of content at different times, each of these times will generate a new <code class="idl"><a data-link-type="idl" href="#performancecontainertiming" id="ref-for-performancecontainertiming">PerformanceContainerTiming</a></code> entry with updated information.
+
+
+   <p>However, once a region has been painted, subsequent paints of that same region will not generate new entries.
+<img alt="Container Timing Life Cycle Diagram" height="740" src="docs/img/life-cycle-dark.svg" style="background: transparent;" width="679"></p>
    <h2 class="heading settled" data-level="3" id="example-usage"><span class="secno">3. </span><span class="content">Usage Example</span><a class="self-link" href="#example-usage"></a></h2>
    <p>The following example demonstrates how to register a container root and observe its paint timings.</p>
    <div class="example" id="example-2f77f3a1">
@@ -887,9 +906,9 @@ Registration is on a per-element basis using the <code class="idl"><a data-link-
     <p>The attribute should be set before the element is added to the document (in HTML, or if set in JavaScript, before adding it to the document). Setting the attribute retroactively will only capture subsequent events and future paints.</p>
    </div>
    <h3 class="heading settled" data-level="3.1" id="ignoring-subtrees"><span class="secno">3.1. </span><span class="content">Ignoring Subtrees</span><a class="self-link" href="#ignoring-subtrees"></a></h3>
-   <div class="example" id="example-3a09fee0">
-    <a class="self-link" href="#example-3a09fee0"></a>
-Parts of the DOM tree can be ignored using the <code class="idl"><a data-link-type="idl" href="#dom-element-containertiming-ignore" id="ref-for-dom-element-containertiming-ignore">containertiming-ignore</a></code>> attribute:
+   <div class="example" id="example-27377d69">
+    <a class="self-link" href="#example-27377d69"></a>
+Parts of the DOM tree can be ignored using the &lt;<code class="idl"><a data-link-type="idl" href="#dom-element-containertiming-ignore" id="ref-for-dom-element-containertiming-ignore">containertiming-ignore</a></code>> attribute:
 
 
 <pre class="highlight language-html"><c- p>&lt;</c-><c- f>div</c-> <c- e>containertiming</c-><c- o>=</c-><c- s>"foobar"</c-><c- p>></c->
@@ -904,7 +923,7 @@ Parts of the DOM tree can be ignored using the <code class="idl"><a data-link-ty
    <p>An <dfn class="dfn-paneled" data-dfn-type="dfn" data-export id="ignored-subtree">ignored subtree</dfn> is a subtree rooted at an <code class="idl"><a data-link-type="idl" href="https://dom.spec.whatwg.org/#element" id="ref-for-element①">Element</a></code> with the <code class="idl"><a data-link-type="idl" href="#dom-element-containertiming-ignore" id="ref-for-dom-element-containertiming-ignore①">containertiming-ignore</a></code>> attribute.</p>
    <p>A <dfn class="dfn-paneled" data-dfn-type="dfn" data-export id="painted-region">painted region</dfn> is a region (collection of rectangles) representing all the painted portions of a <a data-link-type="dfn" href="#container-root" id="ref-for-container-root">container root</a> accumulated since it was first observed.</p>
    <p>The <dfn class="dfn-paneled" data-dfn-type="dfn" data-export id="container-timing-api">container timing API</dfn> provides timing information about when container roots are painted to the screen.</p>
-   <h2 class="heading settled" data-level="5" id="performance-container-timing"><span class="secno">5. </span><span class="content">The <code class="idl"><a data-link-type="idl" href="#performancecontainertiming" id="ref-for-performancecontainertiming">PerformanceContainerTiming</a></code> Interface</span><a class="self-link" href="#performance-container-timing"></a></h2>
+   <h2 class="heading settled" data-level="5" id="performance-container-timing"><span class="secno">5. </span><span class="content">The <code class="idl"><a data-link-type="idl" href="#performancecontainertiming" id="ref-for-performancecontainertiming①">PerformanceContainerTiming</a></code> Interface</span><a class="self-link" href="#performance-container-timing"></a></h2>
 <pre class="def highlight idl">[<a class="idl-code" data-link-type="extended-attribute" href="https://webidl.spec.whatwg.org/#Exposed" id="ref-for-Exposed"><c- g>Exposed</c-></a>=<c- n>Window</c->]
 <c- b>interface</c-> <dfn class="dfn-paneled idl-code" data-dfn-type="interface" data-export id="performancecontainertiming"><code><c- g>PerformanceContainerTiming</c-></code></dfn> : <a data-link-type="idl-name" href="https://w3c.github.io/performance-timeline/#dom-performanceentry" id="ref-for-dom-performanceentry①"><c- n>PerformanceEntry</c-></a> {
     <c- b>readonly</c-> <c- b>attribute</c-> <a class="idl-code" data-link-type="interface" href="https://webidl.spec.whatwg.org/#idl-DOMString" id="ref-for-idl-DOMString"><c- b>DOMString</c-></a> <a class="idl-code" data-link-type="attribute" data-readonly data-type="DOMString" href="#dom-performancecontainertiming-identifier" id="ref-for-dom-performancecontainertiming-identifier"><c- g>identifier</c-></a>;
@@ -912,195 +931,265 @@ Parts of the DOM tree can be ignored using the <code class="idl"><a data-link-ty
     <c- b>readonly</c-> <c- b>attribute</c-> <a class="idl-code" data-link-type="interface" href="https://webidl.spec.whatwg.org/#idl-unsigned-long-long" id="ref-for-idl-unsigned-long-long"><c- b>unsigned</c-> <c- b>long</c-> <c- b>long</c-></a> <a class="idl-code" data-link-type="attribute" data-readonly data-type="unsigned long long" href="#dom-performancecontainertiming-size" id="ref-for-dom-performancecontainertiming-size"><c- g>size</c-></a>;
     <c- b>readonly</c-> <c- b>attribute</c-> <a data-link-type="idl-name" href="https://w3c.github.io/hr-time/#dom-domhighrestimestamp" id="ref-for-dom-domhighrestimestamp"><c- n>DOMHighResTimeStamp</c-></a> <a class="idl-code" data-link-type="attribute" data-readonly data-type="DOMHighResTimeStamp" href="#dom-performancecontainertiming-firstrendertime" id="ref-for-dom-performancecontainertiming-firstrendertime"><c- g>firstRenderTime</c-></a>;
     <c- b>readonly</c-> <c- b>attribute</c-> <a data-link-type="idl-name" href="https://dom.spec.whatwg.org/#element" id="ref-for-element②"><c- n>Element</c-></a>? <a class="idl-code" data-link-type="attribute" data-readonly data-type="Element?" href="#dom-performancecontainertiming-lastpaintedelement" id="ref-for-dom-performancecontainertiming-lastpaintedelement"><c- g>lastPaintedElement</c-></a>;
+    <c- b>readonly</c-> <c- b>attribute</c-> <a data-link-type="idl-name" href="https://dom.spec.whatwg.org/#element" id="ref-for-element③"><c- n>Element</c-></a>? <a class="idl-code" data-link-type="attribute" data-readonly data-type="Element?" href="#dom-performancecontainertiming-rootelement" id="ref-for-dom-performancecontainertiming-rootelement"><c- g>rootElement</c-></a>;
 };
+
+<a data-link-type="idl-name" href="#performancecontainertiming" id="ref-for-performancecontainertiming②"><c- n>PerformanceContainerTiming</c-></a> <c- b>includes</c-> <a data-link-type="idl-name" href="https://w3c.github.io/paint-timing/#painttimingmixin" id="ref-for-painttimingmixin"><c- n>PaintTimingMixin</c-></a>;
 </pre>
    <div>
     
-A <code class="idl"><a data-link-type="idl" href="#performancecontainertiming" id="ref-for-performancecontainertiming①">PerformanceContainerTiming</a></code> object reports timing information for a <a data-link-type="dfn" href="#container-root" id="ref-for-container-root①">container root</a>.
+Each <code class="idl"><a data-link-type="idl" href="#performancecontainertiming" id="ref-for-performancecontainertiming③">PerformanceContainerTiming</a></code> object has these associated concepts:
 
-
-    <p>The <dfn class="dfn-paneled idl-code" data-dfn-for="PerformanceContainerTiming" data-dfn-type="attribute" data-export id="dom-performancecontainertiming-identifier"><code>identifier</code></dfn> attribute returns the value of the <code class="idl"><a data-link-type="idl" href="#dom-element-containertiming" id="ref-for-dom-element-containertiming③">containertiming</a></code> attribute of the <a data-link-type="dfn" href="#container-root" id="ref-for-container-root②">container root</a>.</p>
-    <p>The <dfn class="dfn-paneled idl-code" data-dfn-for="PerformanceContainerTiming" data-dfn-type="attribute" data-export id="dom-performancecontainertiming-intersectionrect"><code>intersectionRect</code></dfn> attribute returns a <code class="idl"><a data-link-type="idl" href="https://drafts.csswg.org/geometry-1/#domrectreadonly" id="ref-for-domrectreadonly①">DOMRectReadOnly</a></code> representing the bounding box of all paints accumulated so far within this <a data-link-type="dfn" href="#container-root" id="ref-for-container-root③">container root</a>.</p>
-    <p>The <dfn class="dfn-paneled idl-code" data-dfn-for="PerformanceContainerTiming" data-dfn-type="attribute" data-export id="dom-performancecontainertiming-size"><code>size</code></dfn> attribute returns the size in pixels of the combined <a data-link-type="dfn" href="#painted-region" id="ref-for-painted-region">painted region</a> within this <a data-link-type="dfn" href="#container-root" id="ref-for-container-root④">container root</a>.</p>
-    <p>The <dfn class="dfn-paneled idl-code" data-dfn-for="PerformanceContainerTiming" data-dfn-type="attribute" data-export id="dom-performancecontainertiming-firstrendertime"><code>firstRenderTime</code></dfn> attribute returns a <code class="idl"><a data-link-type="idl" href="https://w3c.github.io/hr-time/#dom-domhighrestimestamp" id="ref-for-dom-domhighrestimestamp①">DOMHighResTimeStamp</a></code> indicating when the <a data-link-type="dfn" href="#container-root" id="ref-for-container-root⑤">container root</a> was first painted.</p>
-    <p>The <dfn class="dfn-paneled idl-code" data-dfn-for="PerformanceContainerTiming" data-dfn-type="attribute" data-export id="dom-performancecontainertiming-lastpaintedelement"><code>lastPaintedElement</code></dfn> attribute returns the <code class="idl"><a data-link-type="idl" href="https://dom.spec.whatwg.org/#element" id="ref-for-element③">Element</a></code> that was most recently painted within the <a data-link-type="dfn" href="#container-root" id="ref-for-container-root⑥">container root</a>, or null if no element has been painted yet.</p>
-    <p>The <code class="idl"><a data-link-type="idl" href="https://w3c.github.io/performance-timeline/#dom-performanceentry-entrytype" id="ref-for-dom-performanceentry-entrytype">entryType</a></code> attribute must return "<code>container</code>".</p>
-    <p>The <code class="idl"><a data-link-type="idl" href="https://w3c.github.io/performance-timeline/#dom-performanceentry-name" id="ref-for-dom-performanceentry-name">name</a></code> attribute must return the empty string.</p>
-    <p>The <code class="idl"><a data-link-type="idl" href="https://w3c.github.io/performance-timeline/#dom-performanceentry-starttime" id="ref-for-dom-performanceentry-starttime">startTime</a></code> attribute must return the <code class="idl"><a data-link-type="idl" href="https://w3c.github.io/hr-time/#dom-domhighrestimestamp" id="ref-for-dom-domhighrestimestamp②">DOMHighResTimeStamp</a></code> of the latest paint time for this <a data-link-type="dfn" href="#container-root" id="ref-for-container-root⑦">container root</a>.</p>
+    <ul>
+     <li data-md>
+      <p>An <dfn class="dfn-paneled" data-dfn-for="ContainerTiming" data-dfn-type="dfn" data-noexport id="containertiming-identifier">identifier</dfn> initially set to an empty string.</p>
+     <li data-md>
+      <p>An <dfn class="dfn-paneled" data-dfn-for="ContainerTiming" data-dfn-type="dfn" data-noexport id="containertiming-intersectionrect">intersectionRect</dfn> initially set to a <code class="idl"><a data-link-type="idl" href="https://drafts.csswg.org/geometry-1/#domrectreadonly" id="ref-for-domrectreadonly①">DOMRectReadOnly</a></code> with all values set to 0.</p>
+     <li data-md>
+      <p>A <dfn class="dfn-paneled" data-dfn-for="ContainerTiming" data-dfn-type="dfn" data-noexport id="containertiming-size">size</dfn> initially set to 0.</p>
+     <li data-md>
+      <p>A <dfn class="dfn-paneled" data-dfn-for="ContainerTiming" data-dfn-type="dfn" data-noexport id="containertiming-firstrendertime">firstRenderTime</dfn> initially set to 0.</p>
+     <li data-md>
+      <p>A <dfn class="dfn-paneled" data-dfn-for="ContainerTiming" data-dfn-type="dfn" data-noexport id="containertiming-rendertime">renderTime</dfn> initially set to 0.</p>
+     <li data-md>
+      <p>A <dfn class="dfn-paneled" data-dfn-for="ContainerTiming" data-dfn-type="dfn" data-noexport id="containertiming-lastpaintedelement">lastPaintedElement</dfn> containing the associated <code class="idl"><a data-link-type="idl" href="https://dom.spec.whatwg.org/#element" id="ref-for-element④">Element</a></code>, initially set to <code>null</code>.</p>
+     <li data-md>
+      <p>A <dfn class="dfn-paneled" data-dfn-for="ContainerTiming" data-dfn-type="dfn" data-noexport id="containertiming-rootelement">rootElement</dfn> containing the associated <code class="idl"><a data-link-type="idl" href="https://dom.spec.whatwg.org/#element" id="ref-for-element⑤">Element</a></code> that is the container root, initially set to <code>null</code>.</p>
+    </ul>
+    <p>The <code class="idl"><a data-link-type="idl" href="https://w3c.github.io/performance-timeline/#dom-performanceentry-entrytype" id="ref-for-dom-performanceentry-entrytype">entryType</a></code> attribute’s getter must return the <code class="idl"><a data-link-type="idl" href="https://webidl.spec.whatwg.org/#idl-DOMString" id="ref-for-idl-DOMString①">DOMString</a></code> <code>"container"</code>.</p>
+    <p>The <code class="idl"><a data-link-type="idl" href="https://w3c.github.io/performance-timeline/#dom-performanceentry-name" id="ref-for-dom-performanceentry-name">name</a></code> attribute’s getter must return the empty string.</p>
     <p>The <code class="idl"><a data-link-type="idl" href="https://w3c.github.io/performance-timeline/#dom-performanceentry-duration" id="ref-for-dom-performanceentry-duration">duration</a></code> attribute must return 0.</p>
+    <p>The <code class="idl"><a data-link-type="idl" href="https://w3c.github.io/performance-timeline/#dom-performanceentry-starttime" id="ref-for-dom-performanceentry-starttime">startTime</a></code> attribute’s getter must return the value of <a data-link-type="dfn" href="https://webidl.spec.whatwg.org/#this" id="ref-for-this">this</a>’s <a data-link-type="dfn" href="#containertiming-rendertime" id="ref-for-containertiming-rendertime">renderTime</a>.</p>
+    <p>The <dfn class="dfn-paneled idl-code" data-dfn-for="PerformanceContainerTiming" data-dfn-type="attribute" data-export id="dom-performancecontainertiming-identifier"><code>identifier</code></dfn> attribute must return the value of <a data-link-type="dfn" href="https://webidl.spec.whatwg.org/#this" id="ref-for-this①">this</a>’s <a data-link-type="dfn" href="#containertiming-identifier" id="ref-for-containertiming-identifier">identifier</a>.</p>
+    <p>The <dfn class="dfn-paneled idl-code" data-dfn-for="PerformanceContainerTiming" data-dfn-type="attribute" data-export id="dom-performancecontainertiming-intersectionrect"><code>intersectionRect</code></dfn> attribute must return the value of <a data-link-type="dfn" href="https://webidl.spec.whatwg.org/#this" id="ref-for-this②">this</a>’s <a data-link-type="dfn" href="#containertiming-intersectionrect" id="ref-for-containertiming-intersectionrect">intersectionRect</a>.</p>
+    <p>The <dfn class="dfn-paneled idl-code" data-dfn-for="PerformanceContainerTiming" data-dfn-type="attribute" data-export id="dom-performancecontainertiming-size"><code>size</code></dfn> attribute must return the value of <a data-link-type="dfn" href="https://webidl.spec.whatwg.org/#this" id="ref-for-this③">this</a>’s <a data-link-type="dfn" href="#containertiming-size" id="ref-for-containertiming-size">size</a>.</p>
+    <p>The <dfn class="dfn-paneled idl-code" data-dfn-for="PerformanceContainerTiming" data-dfn-type="attribute" data-export id="dom-performancecontainertiming-firstrendertime"><code>firstRenderTime</code></dfn> attribute must return the value of <a data-link-type="dfn" href="https://webidl.spec.whatwg.org/#this" id="ref-for-this④">this</a>’s <a data-link-type="dfn" href="#containertiming-firstrendertime" id="ref-for-containertiming-firstrendertime">firstRenderTime</a>.</p>
+    <p>The <dfn class="dfn-paneled idl-code" data-dfn-for="PerformanceContainerTiming" data-dfn-type="attribute" data-export id="dom-performancecontainertiming-lastpaintedelement"><code>lastPaintedElement</code></dfn> attribute must return the value of <a data-link-type="dfn" href="https://webidl.spec.whatwg.org/#this" id="ref-for-this⑤">this</a>’s <a data-link-type="dfn" href="#containertiming-lastpaintedelement" id="ref-for-containertiming-lastpaintedelement">lastPaintedElement</a>.</p>
+    <p>The <dfn class="dfn-paneled idl-code" data-dfn-for="PerformanceContainerTiming" data-dfn-type="attribute" data-export id="dom-performancecontainertiming-rootelement"><code>rootElement</code></dfn> attribute must return the value of <a data-link-type="dfn" href="https://webidl.spec.whatwg.org/#this" id="ref-for-this⑥">this</a>’s <a data-link-type="dfn" href="#containertiming-rootelement" id="ref-for-containertiming-rootelement">rootElement</a>.</p>
    </div>
    <h2 class="heading settled" data-level="6" id="processing-model"><span class="secno">6. </span><span class="content">Processing Model</span><a class="self-link" href="#processing-model"></a></h2>
    <p class="note" role="note"><span class="marker">Note:</span> A user agent implementing the Container Timing API would need to include <code>"container"</code> in <code class="idl"><a data-link-type="idl" href="https://w3c.github.io/performance-timeline/#dom-performanceobserver-supportedentrytypes" id="ref-for-dom-performanceobserver-supportedentrytypes">supportedEntryTypes</a></code> for <code class="idl"><a data-link-type="idl" href="https://html.spec.whatwg.org/multipage/nav-history-apis.html#window" id="ref-for-window">Window</a></code> contexts.
 This allows developers to detect support for container timing.</p>
-   <h3 class="heading settled" data-level="6.1" id="extensions-to-element"><span class="secno">6.1. </span><span class="content">Extensions to the <code class="idl"><a data-link-type="idl" href="https://dom.spec.whatwg.org/#element" id="ref-for-element④">Element</a></code> Interface</span><a class="self-link" href="#extensions-to-element"></a></h3>
-<pre class="def highlight idl"><c- b>partial</c-> <c- b>interface</c-> <a class="idl-code" data-link-type="interface" href="https://dom.spec.whatwg.org/#element" id="ref-for-element⑤"><c- g>Element</c-></a> {
-    [<a class="idl-code" data-link-type="extended-attribute" href="https://html.spec.whatwg.org/multipage/custom-elements.html#cereactions" id="ref-for-cereactions"><c- g>CEReactions</c-></a>] <c- b>attribute</c-> <a class="idl-code" data-link-type="interface" href="https://webidl.spec.whatwg.org/#idl-DOMString" id="ref-for-idl-DOMString①"><c- b>DOMString</c-></a> <a class="idl-code" data-link-type="attribute" data-type="DOMString" href="#dom-element-containertiming" id="ref-for-dom-element-containertiming④"><c- g>containertiming</c-></a>;
-    [<a class="idl-code" data-link-type="extended-attribute" href="https://html.spec.whatwg.org/multipage/custom-elements.html#cereactions" id="ref-for-cereactions①"><c- g>CEReactions</c-></a>] <c- b>attribute</c-> <a class="idl-code" data-link-type="interface" href="https://webidl.spec.whatwg.org/#idl-DOMString" id="ref-for-idl-DOMString②"><c- b>DOMString</c-></a>? <dfn class="dfn-paneled idl-code" data-dfn-for="Element" data-dfn-type="attribute" data-export data-type="DOMString?" id="dom-element-containertimingignore"><code><c- g>containertimingIgnore</c-></code></dfn>;
+   <h3 class="heading settled" data-level="6.1" id="per-document-state"><span class="secno">6.1. </span><span class="content">Per-Document State</span><a class="self-link" href="#per-document-state"></a></h3>
+   <p>For each <code class="idl"><a data-link-type="idl" href="https://dom.spec.whatwg.org/#document" id="ref-for-document">Document</a></code>, the user agent must maintain a <dfn class="dfn-paneled" data-dfn-type="dfn" data-export id="container-root-records-map">container root records map</dfn> that maps <a data-link-type="dfn" href="#container-root" id="ref-for-container-root①">container root</a> <code class="idl"><a data-link-type="idl" href="https://dom.spec.whatwg.org/#element" id="ref-for-element⑥">Element</a></code>s to <a data-link-type="dfn" href="#container-timing-record-container-timing-record" id="ref-for-container-timing-record-container-timing-record">Container Timing Record</a> objects.</p>
+   <h3 class="heading settled" data-level="6.2" id="extensions-to-element"><span class="secno">6.2. </span><span class="content">Extensions to the <code class="idl"><a data-link-type="idl" href="https://dom.spec.whatwg.org/#element" id="ref-for-element⑦">Element</a></code> Interface</span><a class="self-link" href="#extensions-to-element"></a></h3>
+   <p><em>This section will be removed once the <a data-link-type="biblio" href="#biblio-dom" title="DOM Standard">[DOM]</a> specification had been modified.<em></em></em></p>
+   <em><em>
+
+<p>We extend the <code class="idl"><a data-link-type="idl" href="https://dom.spec.whatwg.org/#element" id="ref-for-element⑧">Element</a></code> interface as follows:</p>
+
+<pre class="def highlight idl"><c- b>partial</c-> <c- b>interface</c-> <a class="idl-code" data-link-type="interface" href="https://dom.spec.whatwg.org/#element" id="ref-for-element⑨"><c- g>Element</c-></a> {
+    [<a class="idl-code" data-link-type="extended-attribute" href="https://html.spec.whatwg.org/multipage/custom-elements.html#cereactions" id="ref-for-cereactions"><c- g>CEReactions</c-></a>] <c- b>attribute</c-> <a class="idl-code" data-link-type="interface" href="https://webidl.spec.whatwg.org/#idl-DOMString" id="ref-for-idl-DOMString②"><c- b>DOMString</c-></a> <a class="idl-code" data-link-type="attribute" data-type="DOMString" href="#dom-element-containertiming" id="ref-for-dom-element-containertiming③"><c- g>containertiming</c-></a>;
+    [<a class="idl-code" data-link-type="extended-attribute" href="https://html.spec.whatwg.org/multipage/custom-elements.html#cereactions" id="ref-for-cereactions①"><c- g>CEReactions</c-></a>] <c- b>attribute</c-> <a class="idl-code" data-link-type="interface" href="https://webidl.spec.whatwg.org/#idl-DOMString" id="ref-for-idl-DOMString③"><c- b>DOMString</c-></a>? <dfn class="dfn-paneled idl-code" data-dfn-for="Element" data-dfn-type="attribute" data-export data-type="DOMString?" id="dom-element-containertimingignore"><code><c- g>containertimingIgnore</c-></code></dfn>;
 };
 </pre>
-   <div>
-    
-The <dfn class="dfn-paneled idl-code" data-dfn-for="Element" data-dfn-type="attribute" data-export id="dom-element-containertiming"><code>containertiming</code></dfn> attribute is a <code class="idl"><a data-link-type="idl" href="https://webidl.spec.whatwg.org/#idl-DOMString" id="ref-for-idl-DOMString③">DOMString</a></code> that identifies the element as a <a data-link-type="dfn" href="#container-root" id="ref-for-container-root⑧">container root</a>. The value becomes the <code class="idl"><a data-link-type="idl" href="#dom-performancecontainertiming-identifier" id="ref-for-dom-performancecontainertiming-identifier①">identifier</a></code> in the corresponding <code class="idl"><a data-link-type="idl" href="#performancecontainertiming" id="ref-for-performancecontainertiming②">PerformanceContainerTiming</a></code> entry.
+<div>
+The <dfn class="dfn-paneled idl-code" data-dfn-for="Element" data-dfn-type="attribute" data-export id="dom-element-containertiming"><code>containertiming</code></dfn> attribute is a <code class="idl"><a data-link-type="idl" href="https://webidl.spec.whatwg.org/#idl-DOMString" id="ref-for-idl-DOMString④">DOMString</a></code> that identifies the element as a <a data-link-type="dfn" href="#container-root" id="ref-for-container-root②">container root</a>. The value becomes the <code class="idl"><a data-link-type="idl" href="#dom-performancecontainertiming-identifier" id="ref-for-dom-performancecontainertiming-identifier①">identifier</a></code> in the corresponding <code class="idl"><a data-link-type="idl" href="#performancecontainertiming" id="ref-for-performancecontainertiming④">PerformanceContainerTiming</a></code> entry.
+
+<p>The <dfn class="dfn-paneled idl-code" data-dfn-for="Element" data-dfn-type="attribute" data-export id="dom-element-containertiming-ignore"><code>containertiming-ignore</code></dfn> attribute, when present, marks the element and its descendants as an <a data-link-type="dfn" href="#ignored-subtree" id="ref-for-ignored-subtree">ignored subtree</a> that should not contribute to container timing measurements for ancestor <a data-link-type="dfn" href="#container-root" id="ref-for-container-root③">container roots</a>.</p>
+</div>
+
+<h3 class="heading settled" data-level="6.3" id="container-timing-record"><span class="secno">6.3. </span><span class="content">Container Timing Record</span><a class="self-link" href="#container-timing-record"></a></h3>
+
+<p>This specification defines an internal data structure used by the processing model:</p>
+
+<div>
+A <dfn class="dfn-paneled" data-dfn-for="Container Timing Record" data-dfn-type="dfn" data-export id="container-timing-record-container-timing-record">Container Timing Record</dfn> has these associated concepts:
+<ul><li data-md><p>A <dfn class="dfn-paneled" data-dfn-for="Container Timing Record" data-dfn-type="dfn" data-noexport id="container-timing-record-painttiminginfo">paintTimingInfo</dfn> which is a <a data-link-type="dfn" href="https://w3c.github.io/paint-timing/#painttimingmixin-paint-timing-info" id="ref-for-painttimingmixin-paint-timing-info">paint timing info</a>.</p>
+</li><li data-md><p>An <dfn class="dfn-paneled" data-dfn-for="Container Timing Record" data-dfn-type="dfn" data-noexport id="container-timing-record-identifier">identifier</dfn> which is a <code class="idl"><a data-link-type="idl" href="https://webidl.spec.whatwg.org/#idl-DOMString" id="ref-for-idl-DOMString⑤">DOMString</a></code>.</p>
+</li><li data-md><p>A <dfn class="dfn-paneled" data-dfn-for="Container Timing Record" data-dfn-type="dfn" data-noexport id="container-timing-record-paintedregion">paintedRegion</dfn> which is a <a data-link-type="dfn" href="#painted-region" id="ref-for-painted-region">painted region</a>, initially empty.</p>
+</li><li data-md><p>A <dfn class="dfn-paneled" data-dfn-for="Container Timing Record" data-dfn-type="dfn" data-noexport id="container-timing-record-lastnewpaintedareapainttiminginfo">lastNewPaintedAreaPaintTimingInfo</dfn> which is a <a data-link-type="dfn" href="https://w3c.github.io/paint-timing/#painttimingmixin-paint-timing-info" id="ref-for-painttimingmixin-paint-timing-info①">paint timing info</a>, initially unset.</p>
+</li><li data-md><p>A <dfn class="dfn-paneled" data-dfn-for="Container Timing Record" data-dfn-type="dfn" data-noexport id="container-timing-record-lastnewpaintedareaelement">lastNewPaintedAreaElement</dfn> which is an <code class="idl"><a data-link-type="idl" href="https://dom.spec.whatwg.org/#element" id="ref-for-element①⓪">Element</a></code> or null, initially null.</p>
+</li><li data-md><p>A <dfn class="dfn-paneled" data-dfn-for="Container Timing Record" data-dfn-type="dfn" data-noexport id="container-timing-record-haspendingchanges">hasPendingChanges</dfn> which is a boolean, initially false.</p>
+</li></ul></div>
+
+<div class="algorithm" data-algorithm="create a container timing record">
+To <dfn class="dfn-paneled" data-dfn-type="dfn" data-noexport id="create-a-container-timing-record">create a Container Timing Record</dfn> given a <a data-link-type="dfn" href="https://w3c.github.io/paint-timing/#painttimingmixin-paint-timing-info" id="ref-for-painttimingmixin-paint-timing-info②">paint timing info</a> <var>paintTimingInfo</var> and a <code class="idl"><a data-link-type="idl" href="https://webidl.spec.whatwg.org/#idl-DOMString" id="ref-for-idl-DOMString⑥">DOMString</a></code> <var>identifier</var>, perform the following steps:
+
+<ol><li data-md><p>Let <var>record</var> be a new <a data-link-type="dfn" href="#container-timing-record-container-timing-record" id="ref-for-container-timing-record-container-timing-record①">Container Timing Record</a>.</p>
+</li><li data-md><p>Set <var>record</var>’s <a data-link-type="dfn" href="#container-timing-record-painttiminginfo" id="ref-for-container-timing-record-painttiminginfo">paintTimingInfo</a> to <var>paintTimingInfo</var>.</p>
+</li><li data-md><p>Set <var>record</var>’s <a data-link-type="dfn" href="#container-timing-record-identifier" id="ref-for-container-timing-record-identifier">identifier</a> to <var>identifier</var>.</p>
+</li><li data-md><p>Return <var>record</var>.</p>
+</li></ol></div>
+
+<h3 class="heading settled" data-level="6.4" id="registering-containers"><span class="secno">6.4. </span><span class="content">Registering Container Roots</span><a class="self-link" href="#registering-containers"></a></h3>
+
+<p>When an <code class="idl"><a data-link-type="idl" href="https://dom.spec.whatwg.org/#element" id="ref-for-element①①">Element</a></code> with a [^containertiming^] content attribute is connected to the document:</p>
+
+<ol><li data-md><p>The user agent must register the element as a <a data-link-type="dfn" href="#container-root" id="ref-for-container-root④">container root</a>.</p>
+</li><li data-md><p>The user agent must initialize an empty <a data-link-type="dfn" href="#painted-region" id="ref-for-painted-region①">painted region</a> for the <a data-link-type="dfn" href="#container-root" id="ref-for-container-root⑤">container root</a>.</p>
+</li><li data-md><p>The user agent must track all paint operations within the <a data-link-type="dfn" href="#container-root" id="ref-for-container-root⑥">container root</a>’s subtree, excluding any <a data-link-type="dfn" href="#ignored-subtree" id="ref-for-ignored-subtree①">ignored subtrees</a>.</p>
+</li></ol>
+<h3 class="heading settled" data-level="6.5" id="reporting-updates"><span class="secno">6.5. </span><span class="content">Report Container Timing Updates</span><a class="self-link" href="#reporting-updates"></a></h3>
+
+<p>When asked to report a container paint given a <code class="idl"><a data-link-type="idl" href="https://dom.spec.whatwg.org/#document" id="ref-for-document①">Document</a></code> <var>document</var>, a <a data-link-type="dfn" href="https://w3c.github.io/paint-timing/#painttimingmixin-paint-timing-info" id="ref-for-painttimingmixin-paint-timing-info③">paint timing info</a> <var>paintTimingInfo</var>, an <a data-link-type="dfn" href="https://infra.spec.whatwg.org/#ordered-set" id="ref-for-ordered-set">ordered set</a> of <a data-link-type="dfn" href="https://w3c.github.io/paint-timing/#pending-image-record" id="ref-for-pending-image-record">pending image records</a> <var>paintedImages</var>, and an <a data-link-type="dfn" href="https://infra.spec.whatwg.org/#ordered-set" id="ref-for-ordered-set①">ordered set</a> of <a data-link-type="dfn" href="https://dom.spec.whatwg.org/#concept-element" id="ref-for-concept-element">elements</a> <var>paintedTextNodes</var>, perform the following steps:</p>
+
+<ol><li data-md><p><a data-link-type="dfn" href="https://infra.spec.whatwg.org/#list-iterate" id="ref-for-list-iterate">For each</a> <var>record</var> of <var>paintedImages</var>:</p>
+<ol><li data-md><p>Let <var>imageElement</var> be <var>record</var>’s <a data-link-type="dfn" href="https://w3c.github.io/paint-timing/#pending-image-record-element" id="ref-for-pending-image-record-element">element</a>.</p>
+</li><li data-md><p>If <var>imageElement</var> is not <a data-link-type="dfn" href="https://w3c.github.io/paint-timing/#exposed-for-paint-timing" id="ref-for-exposed-for-paint-timing">exposed for paint timing</a>, given <var>document</var>, continue.</p>
+</li><li data-md><p>If <var>imageElement</var> does not <a data-link-type="dfn" href="#contribute-to-container-timing" id="ref-for-contribute-to-container-timing">Contribute to container timing</a> continue.</p>
+</li><li data-md><p>Let <var>intersectionRect</var> be the value returned by the intersection rect algorithm using <var>imageElement</var> as the target and viewport as the root.</p>
+</li><li data-md><p><a data-link-type="dfn" href="#potentially-add-a-containertiming-entry" id="ref-for-potentially-add-a-containertiming-entry">Potentially add a ContainerTiming entry</a> with <var>paintTimingInfo</var>, <var>imageElement</var> and <var>intersectionRect</var>.</p>
+</li></ol></li><li data-md><p><a data-link-type="dfn" href="https://infra.spec.whatwg.org/#list-iterate" id="ref-for-list-iterate①">For each</a> <var>textNode</var> of <var>paintedTextNodes</var>,</p>
+<ol><li data-md><p>If <var>textNode</var> is not <a data-link-type="dfn" href="https://w3c.github.io/paint-timing/#exposed-for-paint-timing" id="ref-for-exposed-for-paint-timing①">exposed for paint timing</a>, given <var>document</var>, continue.</p>
+</li><li data-md><p>Let <var>textNodeElement</var> be the <a data-link-type="dfn" href="https://w3c.github.io/paint-timing/#set-of-owned-text-nodes" id="ref-for-set-of-owned-text-nodes">set of owned text nodes</a> owning element.</p>
+</li><li data-md><p>If <var>textNodeElement</var> does not <a data-link-type="dfn" href="#contribute-to-container-timing" id="ref-for-contribute-to-container-timing①">Contribute to container timing</a> continue.</p>
+</li><li data-md><p>Let <var>intersectionRect</var> be an empty rectangle.</p>
+</li><li data-md><p><a data-link-type="dfn" href="https://infra.spec.whatwg.org/#list-iterate" id="ref-for-list-iterate②">For each</a> <code class="idl"><a data-link-type="idl" href="https://dom.spec.whatwg.org/#text" id="ref-for-text">Text</a></code> <a data-link-type="dfn" href="https://dom.spec.whatwg.org/#boundary-point-node" id="ref-for-boundary-point-node">node</a> <var>text</var> of <var>textNode</var>’s <a data-link-type="dfn" href="https://w3c.github.io/paint-timing/#set-of-owned-text-nodes" id="ref-for-set-of-owned-text-nodes①">set of owned text nodes</a>:</p>
+<ol><li data-md><p>Augment <var>intersectionRect</var> to be smallest rectangle containing the border box of <var>text</var> and <var>intersectionRect</var>.</p>
+</li></ol></li><li data-md><p>Intersect <var>intersectionRect</var> with the visual viewport.</p>
+</li><li data-md><p><a data-link-type="dfn" href="#potentially-add-a-containertiming-entry" id="ref-for-potentially-add-a-containertiming-entry①">Potentially add a ContainerTiming entry</a> with <var>paintTimingInfo</var>, <var>textNodeElement</var> and <var>intersectionRect</var>.</p>
+</li></ol>
+</li></ol>
+<h3 class="heading settled" data-level="6.6" id="potentially-add-container-timing-entries"><span class="secno">6.6. </span><span class="content">Potentially add Container Timing Entries</span><a class="self-link" href="#potentially-add-container-timing-entries"></a></h3>
+
+<p class="note" role="note"><span class="marker">Note:</span> A user agent implementing the Container Timing API would need to include <code>"container"</code> in <code class="idl"><a data-link-type="idl" href="https://w3c.github.io/performance-timeline/#dom-performanceobserver-supportedentrytypes" id="ref-for-dom-performanceobserver-supportedentrytypes①">supportedEntryTypes</a></code> for <code class="idl"><a data-link-type="idl" href="https://html.spec.whatwg.org/multipage/nav-history-apis.html#window" id="ref-for-window①">Window</a></code> contexts.
+This allows developers to detect support for the API.</p>
+
+<p>In order to <dfn class="dfn-paneled" data-dfn-type="dfn" data-noexport id="potentially-add-a-containertiming-entry">potentially add a ContainerTiming entry</dfn>, the user agent must perform the following steps:</p>
+
+<div class="algorithm" data-algorithm="ContainerTiming potentially-add-entry">
+<dl><dt data-md>Input</dt><dd data-md><p><var>intersectionRect</var>, a <code class="idl"><a data-link-type="idl" href="https://drafts.csswg.org/geometry-1/#domrectreadonly" id="ref-for-domrectreadonly②">DOMRectReadOnly</a></code></p>
+</dd><dd data-md><p><var>paintTimingInfo</var>, a <a data-link-type="dfn" href="https://w3c.github.io/paint-timing/#painttimingmixin-paint-timing-info" id="ref-for-painttimingmixin-paint-timing-info④">paint timing info</a></p>
+</dd><dd data-md><p><var>element</var>, an <code class="idl"><a data-link-type="idl" href="https://dom.spec.whatwg.org/#element" id="ref-for-element①②">Element</a></code></p>
+</dd><dt data-md>Output</dt><dd data-md><p>None</p>
+<ol><li data-md><p>Let <var>containerRoot</var> be the result of <a data-link-type="dfn" href="#get-the-container-root-element" id="ref-for-get-the-container-root-element">get the container root element</a> given <var>element</var>.</p>
+</li><li data-md><p>If <var>containerRoot</var> is null, return.</p>
+</li><li data-md><p>Let <var>record</var> be the entry in <var>document</var>’s <a data-link-type="dfn" href="#container-root-records-map" id="ref-for-container-root-records-map">container root records map</a> for <var>containerRoot</var>. If no such entry exists, set <var>record</var> to the result of <a data-link-type="dfn" href="#create-a-container-timing-record" id="ref-for-create-a-container-timing-record">create a Container Timing Record</a> given <var>paintTimingInfo</var> and the value of <var>containerRoot</var>’s [^containertiming^] content attribute; then add (<var>containerRoot</var> → <var>record</var>) to <var>document</var>’s <a data-link-type="dfn" href="#container-root-records-map" id="ref-for-container-root-records-map①">container root records map</a>.</p>
+</li></ol></dd></dl>
+</div>
 
 
-    <p>The <dfn class="dfn-paneled idl-code" data-dfn-for="Element" data-dfn-type="attribute" data-export id="dom-element-containertiming-ignore"><code>containertiming-ignore</code></dfn> attribute, when present, marks the element and its descendants as an <a data-link-type="dfn" href="#ignored-subtree" id="ref-for-ignored-subtree">ignored subtree</a> that should not contribute to container timing measurements for ancestor <a data-link-type="dfn" href="#container-root" id="ref-for-container-root⑨">container roots</a>.</p>
-   </div>
-   <h3 class="heading settled" data-level="6.2" id="registering-containers"><span class="secno">6.2. </span><span class="content">Registering Container Roots</span><a class="self-link" href="#registering-containers"></a></h3>
-   <p>When an <code class="idl"><a data-link-type="idl" href="https://dom.spec.whatwg.org/#element" id="ref-for-element⑥">Element</a></code> with a [^containertiming^] content attribute is connected to the document:</p>
-   <ol>
-    <li data-md>
-     <p>The user agent must register the element as a <a data-link-type="dfn" href="#container-root" id="ref-for-container-root①⓪">container root</a>.</p>
-    <li data-md>
-     <p>The user agent must initialize an empty <a data-link-type="dfn" href="#painted-region" id="ref-for-painted-region①">painted region</a> for the <a data-link-type="dfn" href="#container-root" id="ref-for-container-root①①">container root</a>.</p>
-    <li data-md>
-     <p>The user agent must track all paint operations within the <a data-link-type="dfn" href="#container-root" id="ref-for-container-root①②">container root</a>’s subtree, excluding any <a data-link-type="dfn" href="#ignored-subtree" id="ref-for-ignored-subtree①">ignored subtrees</a>.</p>
-   </ol>
-   <h3 class="heading settled" data-level="6.3" id="reporting-paint-updates"><span class="secno">6.3. </span><span class="content">Reporting Paint Updates</span><a class="self-link" href="#reporting-paint-updates"></a></h3>
-   <p>When the rendering engine paints one or more elements within a <a data-link-type="dfn" href="#container-root" id="ref-for-container-root①③">container root</a>:</p>
-   <div class="algorithm" data-algorithm="report container paint">
-    
-To report a container paint given a <a data-link-type="dfn" href="#container-root" id="ref-for-container-root①④">container root</a> <var>containerRoot</var> and a list of painted rectangles <var>rects</var>:
+<h3 class="heading settled" data-level="6.7" id="getting-parent-container-root-element"><span class="secno">6.7. </span><span class="content">Getting the parent container root Element</span><a class="self-link" href="#getting-parent-container-root-element"></a></h3>
+
+<div class="algorithm" data-algorithm="get the parent container root element">
+To <dfn class="dfn-paneled" data-dfn-type="dfn" data-noexport id="get-the-parent-container-root-element">get the parent container root element</dfn> given an <code class="idl"><a data-link-type="idl" href="https://dom.spec.whatwg.org/#element" id="ref-for-element①③">Element</a></code> <var>element</var>, perform the following steps:
+
+<ol><li data-md><p>Let <var>parent</var> be <var>element</var>’s parentElement.</p>
+</li><li data-md><p>If <var>parent</var> is null, return null.</p>
+</li><li data-md><p>Return the result of <a data-link-type="dfn" href="#get-the-container-root-element" id="ref-for-get-the-container-root-element①">get the container root element</a> given <var>parent</var>.</p>
+</li></ol></div>
+
+<h3 class="heading settled" data-level="6.8" id="contributes-to-container-timing"><span class="secno">6.8. </span><span class="content">Contributes to Container Timing</span><a class="self-link" href="#contributes-to-container-timing"></a></h3>
+
+<p>An <code class="idl"><a data-link-type="idl" href="https://dom.spec.whatwg.org/#element" id="ref-for-element①④">Element</a></code> <dfn class="dfn-paneled" data-dfn-type="dfn" data-export data-lt="Contribute to container timing" id="contribute-to-container-timing">contributes to the container timing</dfn> of a <a data-link-type="dfn" href="#container-root" id="ref-for-container-root⑦">container root</a> if all of the following are true:</p>
+
+<ul><li data-md><p>It is a descendant of the <a data-link-type="dfn" href="#container-root" id="ref-for-container-root⑧">container root</a>.</p>
+</li><li data-md><p>It is not within an <a data-link-type="dfn" href="#ignored-subtree" id="ref-for-ignored-subtree②">ignored subtree</a>.</p>
+</li><li data-md><p>It is not in a shadow tree.</p>
+</li></ul>
+<div class="algorithm" data-algorithm="determine contribution to container timing">
+To determine whether an <code class="idl"><a data-link-type="idl" href="https://dom.spec.whatwg.org/#element" id="ref-for-element①⑤">Element</a></code> <var>element</var> contributes to the container timing of a <a data-link-type="dfn" href="#container-root" id="ref-for-container-root⑨">container root</a> <var>containerRoot</var>:
+
+<ol><li data-md><p>If <var>element</var> is null, return false.</p>
+</li><li data-md><p>If <var>element</var> is in a shadow tree, return false.</p>
+</li><li data-md><p>If <var>element</var> is not a descendant of <var>containerRoot</var>, return false.</p>
+</li><li data-md><p>If <var>element</var> is within an <a data-link-type="dfn" href="#ignored-subtree" id="ref-for-ignored-subtree③">ignored subtree</a>, return false.</p>
+</li><li data-md><p>Return true.</p>
+</li></ol></div>
 
 
-    <ol>
-     <li data-md>
-      <p>Let <var>paintedRegionUpdated</var> be false.</p>
-     <li data-md>
-      <p>Let <var>renderTime</var> be the current high resolution time.</p>
-     <li data-md>
-      <p>Let <var>firstRenderTime</var> be <var>containerRoot</var>’s stored first render time, or <var>renderTime</var> if not yet set.</p>
-     <li data-md>
-      <p>If <var>containerRoot</var> does not have a stored first render time, set it to <var>firstRenderTime</var>.</p>
-     <li data-md>
-      <p>Let <var>paintedRegion</var> be the <a data-link-type="dfn" href="#painted-region" id="ref-for-painted-region②">painted region</a> associated with <var>containerRoot</var>.</p>
-     <li data-md>
-      <p>Let <var>lastPaintedElement</var> be null.</p>
-     <li data-md>
-      <p>For each rectangle <var>rect</var> in <var>rects</var>:</p>
-      <ol>
-       <li data-md>
-        <p>If <var>rect</var> is within an <a data-link-type="dfn" href="#ignored-subtree" id="ref-for-ignored-subtree②">ignored subtree</a>, continue to the next <var>rect</var>.</p>
-       <li data-md>
-        <p>If <var>paintedRegion</var> already fully contains <var>rect</var>, continue to the next <var>rect</var>.</p>
-       <li data-md>
-        <p>Set <var>paintedRegionUpdated</var> to true.</p>
-       <li data-md>
-        <p>Set <var>paintedRegion</var> to the union of <var>paintedRegion</var> and <var>rect</var>.</p>
-       <li data-md>
-        <p>Set <var>lastPaintedElement</var> to the <code class="idl"><a data-link-type="idl" href="https://dom.spec.whatwg.org/#element" id="ref-for-element⑦">Element</a></code> associated with <var>rect</var>.</p>
-      </ol>
-     <li data-md>
-      <p>If <var>paintedRegionUpdated</var> is false, return.</p>
-     <li data-md>
-      <p><a data-link-type="dfn" href="#queue-a-performancecontainertiming-entry" id="ref-for-queue-a-performancecontainertiming-entry">Queue a PerformanceContainerTiming entry</a> with:</p>
-      <ul>
-       <li data-md>
-        <p>identifier: the value of <var>containerRoot</var>’s <code class="idl"><a data-link-type="idl" href="#dom-element-containertiming" id="ref-for-dom-element-containertiming⑤">containertiming</a></code> attribute</p>
-       <li data-md>
-        <p>startTime: <var>renderTime</var></p>
-       <li data-md>
-        <p>firstRenderTime: <var>firstRenderTime</var></p>
-       <li data-md>
-        <p>intersectionRect: the bounding rectangle of <var>paintedRegion</var></p>
-       <li data-md>
-        <p>size: the total area of <var>paintedRegion</var></p>
-       <li data-md>
-        <p>lastPaintedElement: <var>lastPaintedElement</var></p>
-      </ul>
-    </ol>
-   </div>
-   <div class="algorithm" data-algorithm="queue container timing entry">
-    
-To <dfn class="dfn-paneled" data-dfn-type="dfn" data-noexport id="queue-a-performancecontainertiming-entry">queue a PerformanceContainerTiming entry</dfn> given <var>identifier</var>, <var>startTime</var>, <var>firstRenderTime</var>, <var>intersectionRect</var>, <var>size</var>, and <var>lastPaintedElement</var>:
+<h3 class="heading settled" data-level="6.9" id="getting-container-root-element"><span class="secno">6.9. </span><span class="content">Getting the container root Element</span><a class="self-link" href="#getting-container-root-element"></a></h3>
+
+<div class="algorithm" data-algorithm="get the container root element">
+To <dfn class="dfn-paneled" data-dfn-type="dfn" data-noexport id="get-the-container-root-element">get the container root element</dfn> given an <code class="idl"><a data-link-type="idl" href="https://dom.spec.whatwg.org/#element" id="ref-for-element①⑥">Element</a></code> <var>element</var>, perform the following steps:
+
+<ol><li data-md><p>If <var>element</var> is null, return null.</p>
+</li><li data-md><p>If <var>element</var>’s [^containertiming^] content attribute is present, return <var>element</var>.</p>
+</li><li data-md><p>If <var>element</var>’s parentElement is not null, return the result of <a data-link-type="dfn" href="#get-the-container-root-element" id="ref-for-get-the-container-root-element②">get the container root element</a> given <var>element</var>’s parentElement.</p>
+</li><li data-md><p>Return null.</p>
+</li></ol></div>
+
+<h3 class="heading settled" data-level="6.10" id="maybe-update-last-new-painted-area"><span class="secno">6.10. </span><span class="content">Maybe Update Last New Painted Area</span><a class="self-link" href="#maybe-update-last-new-painted-area"></a></h3>
+
+<div class="algorithm" data-algorithm="maybe update last new painted area">
+To <dfn class="dfn-paneled" data-dfn-type="dfn" data-noexport id="maybe-update-the-last-new-painted-area">maybe update the last new painted area</dfn> for a <a data-link-type="dfn" href="#container-timing-record-container-timing-record" id="ref-for-container-timing-record-container-timing-record②">Container Timing Record</a> <var>record</var> given a <code class="idl"><a data-link-type="idl" href="https://dom.spec.whatwg.org/#document" id="ref-for-document②">Document</a></code> <var>document</var>, a <a data-link-type="dfn" href="#container-root" id="ref-for-container-root①⓪">container root</a> <code class="idl"><a data-link-type="idl" href="https://dom.spec.whatwg.org/#element" id="ref-for-element①⑦">Element</a></code> <var>containerRoot</var>, an <code class="idl"><a data-link-type="idl" href="https://dom.spec.whatwg.org/#element" id="ref-for-element①⑧">Element</a></code> <var>element</var>, a <code class="idl"><a data-link-type="idl" href="https://drafts.csswg.org/geometry-1/#domrectreadonly" id="ref-for-domrectreadonly③">DOMRectReadOnly</a></code> <var>enclosingRect</var>, and a <a data-link-type="dfn" href="https://w3c.github.io/paint-timing/#painttimingmixin-paint-timing-info" id="ref-for-painttimingmixin-paint-timing-info⑤">paint timing info</a> <var>paintTimingInfo</var>, perform the following steps:
+
+<ol><li data-md><p>Let <var>paintedRegion</var> be <var>record</var>’s <a data-link-type="dfn" href="#container-timing-record-paintedregion" id="ref-for-container-timing-record-paintedregion">paintedRegion</a>.</p>
+</li><li data-md><p>If <var>paintedRegion</var> fully contains <var>enclosingRect</var>, return.</p>
+</li><li data-md><p>Set <var>record</var>’s <a data-link-type="dfn" href="#container-timing-record-paintedregion" id="ref-for-container-timing-record-paintedregion①">paintedRegion</a> to the union of <var>paintedRegion</var> and <var>enclosingRect</var>.</p>
+</li><li data-md><p>Set <var>record</var>’s <a data-link-type="dfn" href="#container-timing-record-lastnewpaintedareapainttiminginfo" id="ref-for-container-timing-record-lastnewpaintedareapainttiminginfo">lastNewPaintedAreaPaintTimingInfo</a> to <var>paintTimingInfo</var>.</p>
+</li><li data-md><p>Set <var>record</var>’s <a data-link-type="dfn" href="#container-timing-record-lastnewpaintedareaelement" id="ref-for-container-timing-record-lastnewpaintedareaelement">lastNewPaintedAreaElement</a> to <var>element</var>.</p>
+</li><li data-md><p>Set <var>record</var>’s <a data-link-type="dfn" href="#container-timing-record-haspendingchanges" id="ref-for-container-timing-record-haspendingchanges">hasPendingChanges</a> to true.</p>
+</li><li data-md><p>If <var>containerRoot</var>’s [^containertiming-ignore^] content attribute is present, return.</p>
+</li><li data-md><p>Let <var>parentContainerRoot</var> be the result of <a data-link-type="dfn" href="#get-the-parent-container-root-element" id="ref-for-get-the-parent-container-root-element">get the parent container root element</a> given <var>containerRoot</var>.</p>
+</li><li data-md><p>If <var>parentContainerRoot</var> is null, return.</p>
+</li><li data-md><p>Let <var>parentRecord</var> be the entry in <var>document</var>’s <a data-link-type="dfn" href="#container-root-records-map" id="ref-for-container-root-records-map②">container root records map</a> for <var>parentContainerRoot</var>. If no such entry exists, set <var>parentRecord</var> to the result of <a data-link-type="dfn" href="#create-a-container-timing-record" id="ref-for-create-a-container-timing-record①">create a Container Timing Record</a> given <var>paintTimingInfo</var> and the value of <var>parentContainerRoot</var>’s [^containertiming^] content attribute; then add (<var>parentContainerRoot</var> → <var>parentRecord</var>) to <var>document</var>’s <a data-link-type="dfn" href="#container-root-records-map" id="ref-for-container-root-records-map③">container root records map</a>.</p>
+</li><li data-md><p><a data-link-type="dfn" href="#maybe-update-the-last-new-painted-area" id="ref-for-maybe-update-the-last-new-painted-area">Maybe update the last new painted area</a> for <var>parentRecord</var> given <var>document</var>, <var>parentContainerRoot</var>, <var>element</var>, <var>enclosingRect</var>, and <var>paintTimingInfo</var>.</p>
+</li></ol></div>
 
 
-    <ol>
-     <li data-md>
-      <p>Let <var>entry</var> be a new <code class="idl"><a data-link-type="idl" href="#performancecontainertiming" id="ref-for-performancecontainertiming③">PerformanceContainerTiming</a></code> object with:</p>
-      <ul>
-       <li data-md>
-        <p><code class="idl"><a data-link-type="idl" href="https://w3c.github.io/performance-timeline/#dom-performanceentry-entrytype" id="ref-for-dom-performanceentry-entrytype①">entryType</a></code>: "<code>container</code>"</p>
-       <li data-md>
-        <p><code class="idl"><a data-link-type="idl" href="https://w3c.github.io/performance-timeline/#dom-performanceentry-name" id="ref-for-dom-performanceentry-name①">name</a></code>: the empty string</p>
-       <li data-md>
-        <p><code class="idl"><a data-link-type="idl" href="https://w3c.github.io/performance-timeline/#dom-performanceentry-starttime" id="ref-for-dom-performanceentry-starttime①">startTime</a></code>: <var>startTime</var></p>
-       <li data-md>
-        <p><code class="idl"><a data-link-type="idl" href="https://w3c.github.io/performance-timeline/#dom-performanceentry-duration" id="ref-for-dom-performanceentry-duration①">duration</a></code>: 0</p>
-       <li data-md>
-        <p><code class="idl"><a data-link-type="idl" href="#dom-performancecontainertiming-identifier" id="ref-for-dom-performancecontainertiming-identifier②">identifier</a></code>: <var>identifier</var></p>
-       <li data-md>
-        <p><code class="idl"><a data-link-type="idl" href="#dom-performancecontainertiming-firstrendertime" id="ref-for-dom-performancecontainertiming-firstrendertime①">firstRenderTime</a></code>: <var>firstRenderTime</var></p>
-       <li data-md>
-        <p><code class="idl"><a data-link-type="idl" href="#dom-performancecontainertiming-intersectionrect" id="ref-for-dom-performancecontainertiming-intersectionrect①">intersectionRect</a></code>: <var>intersectionRect</var></p>
-       <li data-md>
-        <p><code class="idl"><a data-link-type="idl" href="#dom-performancecontainertiming-size" id="ref-for-dom-performancecontainertiming-size①">size</a></code>: <var>size</var></p>
-       <li data-md>
-        <p><code class="idl"><a data-link-type="idl" href="#dom-performancecontainertiming-lastpaintedelement" id="ref-for-dom-performancecontainertiming-lastpaintedelement①">lastPaintedElement</a></code>: <var>lastPaintedElement</var></p>
-      </ul>
-     <li data-md>
-      <p><a data-link-type="dfn" href="https://w3c.github.io/performance-timeline/#dfn-queue-a-performanceentry" id="ref-for-dfn-queue-a-performanceentry">Queue the PerformanceEntry</a> <var>entry</var></p>
-     <li data-md>
-      <p>Do not add <var>entry</var> to the performance timeline buffer.</p>
-    </ol>
-    <p class="note" role="note"><span class="marker">Note:</span> Container timing entries are only delivered to <code class="idl"><a data-link-type="idl" href="https://w3c.github.io/performance-timeline/#dom-performanceobserver" id="ref-for-dom-performanceobserver">PerformanceObserver</a></code>s and are not added to the Performance Timeline buffer to avoid memory overhead from potentially frequent updates.</p>
-   </div>
-   <h2 class="heading settled" data-level="7" id="security-privacy"><span class="secno">7. </span><span class="content">Security and Privacy Considerations</span><a class="self-link" href="#security-privacy"></a></h2>
-   <h3 class="heading settled" data-level="7.1" id="cross-origin"><span class="secno">7.1. </span><span class="content">Cross-Origin Restrictions</span><a class="self-link" href="#cross-origin"></a></h3>
-   <p>The API respects cross-origin boundaries:</p>
-   <ul>
-    <li data-md>
-     <p>Elements belonging to cross-origin iframes are not exposed to parent frames.</p>
-    <li data-md>
-     <p>No timing information crosses frame boundaries unless explicitly passed by the developer via <code>postMessage</code>.</p>
-   </ul>
-   <h3 class="heading settled" data-level="7.2" id="information-exposure"><span class="secno">7.2. </span><span class="content">Information Exposure</span><a class="self-link" href="#information-exposure"></a></h3>
-   <p>Most information provided by this API can already be estimated through existing APIs:</p>
-   <ul>
-    <li data-md>
-     <p>Element Timing returns first rendering time for images and text.</p>
-    <li data-md>
-     <p>Paint Timing API provides related timestamps.</p>
-    <li data-md>
-     <p>The combination of these APIs could approximate container timing information, though less efficiently.</p>
-   </ul>
-   <p>The API does not expose:</p>
-   <ul>
-    <li data-md>
-     <p>Internal implementation details of the rendering engine</p>
-    <li data-md>
-     <p>Information about elements the developer doesn’t already have access to</p>
-    <li data-md>
-     <p>Timing information more granular than already available through existing Performance APIs</p>
-   </ul>
-   <h3 class="heading settled" data-level="7.3" id="timing-attacks"><span class="secno">7.3. </span><span class="content">Timing Attacks</span><a class="self-link" href="#timing-attacks"></a></h3>
-   <p>The API uses <code class="idl"><a data-link-type="idl" href="https://w3c.github.io/hr-time/#dom-domhighrestimestamp" id="ref-for-dom-domhighrestimestamp③">DOMHighResTimeStamp</a></code> which may be subject to resolution limitations for security purposes, consistent with other Performance APIs.</p>
-   <h3 class="heading settled" data-level="7.4" id="privacy"><span class="secno">7.4. </span><span class="content">Privacy Considerations</span><a class="self-link" href="#privacy"></a></h3>
-   <p>The API does not:</p>
-   <ul>
-    <li data-md>
-     <p>Enable tracking users across sites</p>
-    <li data-md>
-     <p>Expose browsing history</p>
-    <li data-md>
-     <p>Provide information about user behavior beyond what the site already has access to through script execution</p>
-   </ul>
-   <h2 class="heading settled" data-level="8" id="acknowledgments"><span class="secno">8. </span><span class="content">Acknowledgments</span><a class="self-link" href="#acknowledgments"></a></h2>
-   <p>Many thanks for valuable feedback and advice from:</p>
-   <ul>
-    <li data-md>
-     <p>Barry Pollard</p>
-    <li data-md>
-     <p>Michael Mocny</p>
-    <li data-md>
-     <p>Scott Haseley</p>
-    <li data-md>
-     <p>Sergey Chernyshev</p>
-   </ul>
+<h3 class="heading settled" data-level="6.11" id="create-container-timing-entry"><span class="secno">6.11. </span><span class="content">Create a Container Timing Entry</span><a class="self-link" href="#create-container-timing-entry"></a></h3>
+
+<p>In order to create a Container Timing entry given a <a data-link-type="dfn" href="#container-timing-record-container-timing-record" id="ref-for-container-timing-record-container-timing-record③">Container Timing Record</a> <var>record</var>, the user agent must perform the following steps:</p>
+
+<dl><dt data-md>Output</dt><dd data-md><p>None</p>
+<ol><li data-md><p>Let <var>entry</var> be a new <code class="idl"><a data-link-type="idl" href="#performancecontainertiming" id="ref-for-performancecontainertiming⑤">PerformanceContainerTiming</a></code> entry with its:</p>
+<ul><li data-md><p><code class="idl"><a data-link-type="idl" href="https://w3c.github.io/performance-timeline/#dom-performanceentry-entrytype" id="ref-for-dom-performanceentry-entrytype①">entryType</a></code> set to "<code>container</code>"</p>
+</li><li data-md><p><code class="idl"><a data-link-type="idl" href="https://w3c.github.io/performance-timeline/#dom-performanceentry-name" id="ref-for-dom-performanceentry-name①">name</a></code> set to the empty string</p>
+</li><li data-md><p><code class="idl"><a data-link-type="idl" href="https://w3c.github.io/performance-timeline/#dom-performanceentry-starttime" id="ref-for-dom-performanceentry-starttime①">startTime</a></code> set to <var>record</var>’s <a data-link-type="dfn" href="#container-timing-record-lastnewpaintedareapainttiminginfo" id="ref-for-container-timing-record-lastnewpaintedareapainttiminginfo①">lastNewPaintedAreaPaintTimingInfo</a>’s <code class="idl"><a data-link-type="idl" href="https://w3c.github.io/paint-timing/#dom-painttimingmixin-painttime" id="ref-for-dom-painttimingmixin-painttime">paintTime</a></code></p>
+</li><li data-md><p><code class="idl"><a data-link-type="idl" href="https://w3c.github.io/performance-timeline/#dom-performanceentry-duration" id="ref-for-dom-performanceentry-duration①">duration</a></code> set to 0</p>
+</li><li data-md><p><code class="idl"><a data-link-type="idl" href="#dom-performancecontainertiming-identifier" id="ref-for-dom-performancecontainertiming-identifier②">identifier</a></code> set to <var>record</var>’s <a data-link-type="dfn" href="#container-timing-record-identifier" id="ref-for-container-timing-record-identifier①">identifier</a></p>
+</li><li data-md><p><code class="idl"><a data-link-type="idl" href="#dom-performancecontainertiming-firstrendertime" id="ref-for-dom-performancecontainertiming-firstrendertime①">firstRenderTime</a></code> set to <var>record</var>’s <a data-link-type="dfn" href="#container-timing-record-painttiminginfo" id="ref-for-container-timing-record-painttiminginfo①">paintTimingInfo</a>’s <code class="idl"><a data-link-type="idl" href="https://w3c.github.io/paint-timing/#dom-painttimingmixin-painttime" id="ref-for-dom-painttimingmixin-painttime①">paintTime</a></code></p>
+</li><li data-md><p><code class="idl"><a data-link-type="idl" href="#dom-performancecontainertiming-intersectionrect" id="ref-for-dom-performancecontainertiming-intersectionrect①">intersectionRect</a></code> set to the bounding rectangle of <var>record</var>’s <a data-link-type="dfn" href="#container-timing-record-paintedregion" id="ref-for-container-timing-record-paintedregion②">paintedRegion</a></p>
+</li><li data-md><p><code class="idl"><a data-link-type="idl" href="#dom-performancecontainertiming-size" id="ref-for-dom-performancecontainertiming-size①">size</a></code> set to the total area of <var>record</var>’s <a data-link-type="dfn" href="#container-timing-record-paintedregion" id="ref-for-container-timing-record-paintedregion③">paintedRegion</a></p>
+</li><li data-md><p><code class="idl"><a data-link-type="idl" href="#dom-performancecontainertiming-lastpaintedelement" id="ref-for-dom-performancecontainertiming-lastpaintedelement①">lastPaintedElement</a></code> set to <var>record</var>’s <a data-link-type="dfn" href="#container-timing-record-lastnewpaintedareaelement" id="ref-for-container-timing-record-lastnewpaintedareaelement①">lastNewPaintedAreaElement</a></p>
+</li></ul></li><li data-md><p><a data-link-type="dfn" href="https://w3c.github.io/performance-timeline/#dfn-queue-a-performanceentry" id="ref-for-dfn-queue-a-performanceentry">Queue the PerformanceEntry</a> <var>entry</var></p>
+</li></ol></dd></dl>
+<h2 class="heading settled" data-level="7" id="security-privacy"><span class="secno">7. </span><span class="content">Security and Privacy Considerations</span><a class="self-link" href="#security-privacy"></a></h2>
+
+<h3 class="heading settled" data-level="7.1" id="cross-origin"><span class="secno">7.1. </span><span class="content">Cross-Origin Restrictions</span><a class="self-link" href="#cross-origin"></a></h3>
+
+<p>The API respects cross-origin boundaries:</p>
+
+<ul><li data-md><p>Elements belonging to cross-origin iframes are not exposed to parent frames.</p>
+</li><li data-md><p>No timing information crosses frame boundaries unless explicitly passed by the developer via <code>postMessage</code>.</p>
+</li></ul>
+<h3 class="heading settled" data-level="7.2" id="information-exposure"><span class="secno">7.2. </span><span class="content">Information Exposure</span><a class="self-link" href="#information-exposure"></a></h3>
+
+<p>Most information provided by this API can already be estimated through existing APIs:</p>
+
+<ul><li data-md><p>Element Timing returns first rendering time for images and text.</p>
+</li><li data-md><p>Paint Timing API provides related timestamps.</p>
+</li><li data-md><p>The combination of these APIs could approximate container timing information, though less efficiently.</p>
+</li></ul>
+<p>The API does not expose:</p>
+
+<ul><li data-md><p>Internal implementation details of the rendering engine</p>
+</li><li data-md><p>Information about elements the developer doesn’t already have access to</p>
+</li><li data-md><p>Timing information more granular than already available through existing Performance APIs</p>
+</li></ul>
+<h3 class="heading settled" data-level="7.3" id="timing-attacks"><span class="secno">7.3. </span><span class="content">Timing Attacks</span><a class="self-link" href="#timing-attacks"></a></h3>
+
+<p>The API uses <code class="idl"><a data-link-type="idl" href="https://w3c.github.io/hr-time/#dom-domhighrestimestamp" id="ref-for-dom-domhighrestimestamp①">DOMHighResTimeStamp</a></code> which may be subject to resolution limitations for security purposes, consistent with other Performance APIs.</p>
+
+<h3 class="heading settled" data-level="7.4" id="privacy"><span class="secno">7.4. </span><span class="content">Privacy Considerations</span><a class="self-link" href="#privacy"></a></h3>
+
+<p>The API does not:</p>
+
+<ul><li data-md><p>Enable tracking users across sites</p>
+</li><li data-md><p>Expose browsing history</p>
+</li><li data-md><p>Provide information about user behavior beyond what the site already has access to through script execution</p>
+</li></ul>
+<h2 class="heading settled" data-level="8" id="acknowledgments"><span class="secno">8. </span><span class="content">Acknowledgments</span><a class="self-link" href="#acknowledgments"></a></h2>
+
+<p>Many thanks for valuable feedback and advice from:</p>
+
+<ul><li data-md><p>Barry Pollard</p>
+</li><li data-md><p>Michael Mocny</p>
+</li><li data-md><p>Scott Haseley</p>
+</li><li data-md><p>Sergey Chernyshev</p>
+</li></ul>
+
+</em></em>
   </main>
-  <div data-fill-with="conformance">
-   <h2 class="heading no-num no-ref settled" id="w3c-conformance"><span class="content">Conformance</span><a class="self-link" href="#w3c-conformance"></a></h2>
-   <h3 class="heading no-num no-ref settled" id="w3c-conventions"><span class="content">Document conventions</span><a class="self-link" href="#w3c-conventions"></a></h3>
-   <p>Conformance requirements are expressed
+  <em><em>
+<div data-fill-with="conformance">
+<h2 class="heading no-num no-ref settled" id="w3c-conformance"><span class="content">Conformance</span><a class="self-link" href="#w3c-conformance"></a></h2>
+
+<h3 class="heading no-num no-ref settled" id="w3c-conventions"><span class="content">Document conventions</span><a class="self-link" href="#w3c-conventions"></a></h3>
+
+    <p>Conformance requirements are expressed
     with a combination of descriptive assertions
     and RFC 2119 terminology.
     The key words “MUST”, “MUST NOT”, “REQUIRED”, “SHALL”, “SHALL NOT”, “SHOULD”, “SHOULD NOT”, “RECOMMENDED”, “MAY”, and “OPTIONAL”
@@ -1109,32 +1198,31 @@ To <dfn class="dfn-paneled" data-dfn-type="dfn" data-noexport id="queue-a-perfor
     However, for readability,
     these words do not appear in all uppercase letters in this specification.
 
-    </p>
-   <p>All of the text of this specification is normative
+    </p><p>All of the text of this specification is normative
     except sections explicitly marked as non-normative, examples, and notes. <a data-link-type="biblio" href="#biblio-rfc2119" title="Key words for use in RFCs to Indicate Requirement Levels">[RFC2119]</a>
 
-    </p>
-   <p>Examples in this specification are introduced with the words “for example”
+    </p><p>Examples in this specification are introduced with the words “for example”
     or are set apart from the normative text
     with <code>class="example"</code>,
     like this:
 
-    </p>
-   <div class="example" id="w3c-example">
-    <a class="self-link" href="#w3c-example"></a>
-        
-    <p>This is an example of an informative example.
-    </p>
-   </div>
-   <p>Informative notes begin with the word “Note”
+    </p><div class="example" id="w3c-example"><a class="self-link" href="#w3c-example"></a>
+        <p>This is an example of an informative example.
+    </p></div>
+
+    <p>Informative notes begin with the word “Note”
     and are set apart from the normative text
     with <code>class="note"</code>,
     like this:
 
-    </p>
-   <p class="note" role="note">Note, this is an informative note.</p>
-   <section>
-    <h3 class="heading no-num no-ref settled" id="w3c-conformant-algorithms"><span class="content">Conformant Algorithms</span><a class="self-link" href="#w3c-conformant-algorithms"></a></h3>
+    </p><p class="note" role="note">Note, this is an informative note.</p>
+
+    
+
+<section>
+
+<h3 class="heading no-num no-ref settled" id="w3c-conformant-algorithms"><span class="content">Conformant Algorithms</span><a class="self-link" href="#w3c-conformant-algorithms"></a></h3>
+
     <p>Requirements phrased in the imperative as part of algorithms
     (such as "strip any leading space characters"
     or "return false and abort these steps")
@@ -1142,42 +1230,93 @@ To <dfn class="dfn-paneled" data-dfn-type="dfn" data-noexport id="queue-a-perfor
     ("must", "should", "may", etc)
     used in introducing the algorithm.
 
-    </p>
-    <p>Conformance requirements phrased as algorithms or specific steps
+    </p><p>Conformance requirements phrased as algorithms or specific steps
     can be implemented in any manner,
     so long as the end result is equivalent.
     In particular, the algorithms defined in this specification
     are intended to be easy to understand
     and are not intended to be performant.
     Implementers are encouraged to optimize.
-</p>
-   </section>
-  </div>
-  <script src="https://www.w3.org/scripts/TR/2021/fixup.js"></script>
+</p></section>
+
+</div>
+<script src="https://www.w3.org/scripts/TR/2021/fixup.js"></script>
+
+
+</em></em>
   <h2 class="heading no-num no-ref settled" id="index"><span class="content">Index</span><a class="self-link" href="#index"></a></h2>
   <h3 class="heading no-num no-ref settled" id="index-defined-here"><span class="content">Terms defined by this specification</span><a class="self-link" href="#index-defined-here"></a></h3>
   <ul class="index">
    <li><a href="#container-root">container root</a><span>, in § 4</span>
-   <li><a href="#dom-element-containertiming">containertiming</a><span>, in § 6.1</span>
+   <li><a href="#container-root-records-map">container root records map</a><span>, in § 6.1</span>
+   <li><a href="#dom-element-containertiming">containertiming</a><span>, in § 6.2</span>
    <li><a href="#container-timing-api">container timing API</a><span>, in § 4</span>
-   <li><a href="#dom-element-containertiming-ignore">containertiming-ignore</a><span>, in § 6.1</span>
-   <li><a href="#dom-element-containertimingignore">containertimingIgnore</a><span>, in § 6.1</span>
-   <li><a href="#dom-performancecontainertiming-firstrendertime">firstRenderTime</a><span>, in § 5</span>
-   <li><a href="#dom-performancecontainertiming-identifier">identifier</a><span>, in § 5</span>
+   <li><a href="#dom-element-containertiming-ignore">containertiming-ignore</a><span>, in § 6.2</span>
+   <li><a href="#dom-element-containertimingignore">containertimingIgnore</a><span>, in § 6.2</span>
+   <li><a href="#container-timing-record-container-timing-record">Container Timing Record</a><span>, in § 6.3</span>
+   <li><a href="#contribute-to-container-timing">Contribute to container timing</a><span>, in § 6.8</span>
+   <li><a href="#create-a-container-timing-record">create a Container Timing Record</a><span>, in § 6.3</span>
+   <li>
+    firstRenderTime
+    <ul>
+     <li><a href="#dom-performancecontainertiming-firstrendertime">attribute for PerformanceContainerTiming</a><span>, in § 5</span>
+     <li><a href="#containertiming-firstrendertime">dfn for ContainerTiming</a><span>, in § 5</span>
+    </ul>
+   <li><a href="#get-the-container-root-element">get the container root element</a><span>, in § 6.9</span>
+   <li><a href="#get-the-parent-container-root-element">get the parent container root element</a><span>, in § 6.7</span>
+   <li><a href="#container-timing-record-haspendingchanges">hasPendingChanges</a><span>, in § 6.3</span>
+   <li>
+    identifier
+    <ul>
+     <li><a href="#dom-performancecontainertiming-identifier">attribute for PerformanceContainerTiming</a><span>, in § 5</span>
+     <li><a href="#container-timing-record-identifier">dfn for Container Timing Record</a><span>, in § 6.3</span>
+     <li><a href="#containertiming-identifier">dfn for ContainerTiming</a><span>, in § 5</span>
+    </ul>
    <li><a href="#ignored-subtree">ignored subtree</a><span>, in § 4</span>
-   <li><a href="#dom-performancecontainertiming-intersectionrect">intersectionRect</a><span>, in § 5</span>
-   <li><a href="#dom-performancecontainertiming-lastpaintedelement">lastPaintedElement</a><span>, in § 5</span>
+   <li>
+    intersectionRect
+    <ul>
+     <li><a href="#dom-performancecontainertiming-intersectionrect">attribute for PerformanceContainerTiming</a><span>, in § 5</span>
+     <li><a href="#containertiming-intersectionrect">dfn for ContainerTiming</a><span>, in § 5</span>
+    </ul>
+   <li><a href="#container-timing-record-lastnewpaintedareaelement">lastNewPaintedAreaElement</a><span>, in § 6.3</span>
+   <li><a href="#container-timing-record-lastnewpaintedareapainttiminginfo">lastNewPaintedAreaPaintTimingInfo</a><span>, in § 6.3</span>
+   <li>
+    lastPaintedElement
+    <ul>
+     <li><a href="#dom-performancecontainertiming-lastpaintedelement">attribute for PerformanceContainerTiming</a><span>, in § 5</span>
+     <li><a href="#containertiming-lastpaintedelement">dfn for ContainerTiming</a><span>, in § 5</span>
+    </ul>
+   <li><a href="#maybe-update-the-last-new-painted-area">maybe update the last new painted area</a><span>, in § 6.10</span>
    <li><a href="#painted-region">painted region</a><span>, in § 4</span>
+   <li><a href="#container-timing-record-paintedregion">paintedRegion</a><span>, in § 6.3</span>
+   <li><a href="#container-timing-record-painttiminginfo">paintTimingInfo</a><span>, in § 6.3</span>
    <li><a href="#performancecontainertiming">PerformanceContainerTiming</a><span>, in § 5</span>
-   <li><a href="#queue-a-performancecontainertiming-entry">queue a PerformanceContainerTiming entry</a><span>, in § 6.3</span>
-   <li><a href="#dom-performancecontainertiming-size">size</a><span>, in § 5</span>
+   <li><a href="#potentially-add-a-containertiming-entry">potentially add a ContainerTiming entry</a><span>, in § 6.6</span>
+   <li><a href="#containertiming-rendertime">renderTime</a><span>, in § 5</span>
+   <li>
+    rootElement
+    <ul>
+     <li><a href="#dom-performancecontainertiming-rootelement">attribute for PerformanceContainerTiming</a><span>, in § 5</span>
+     <li><a href="#containertiming-rootelement">dfn for ContainerTiming</a><span>, in § 5</span>
+    </ul>
+   <li>
+    size
+    <ul>
+     <li><a href="#dom-performancecontainertiming-size">attribute for PerformanceContainerTiming</a><span>, in § 5</span>
+     <li><a href="#containertiming-size">dfn for ContainerTiming</a><span>, in § 5</span>
+    </ul>
   </ul>
   <h3 class="heading no-num no-ref settled" id="index-defined-elsewhere"><span class="content">Terms defined by reference</span><a class="self-link" href="#index-defined-elsewhere"></a></h3>
   <ul class="index">
    <li>
     <a data-link-type="biblio">[DOM]</a> defines the following terms:
     <ul>
+     <li><span class="dfn-paneled" id="85394472">Document</span>
      <li><span class="dfn-paneled" id="296f3551">Element</span>
+     <li><span class="dfn-paneled" id="597088f0">Text</span>
+     <li><span class="dfn-paneled" id="27d9b7ea">element</span>
+     <li><span class="dfn-paneled" id="d462b34f">node</span>
     </ul>
    <li>
     <a data-link-type="biblio">[GEOMETRY-1]</a> defines the following terms:
@@ -1196,10 +1335,26 @@ To <dfn class="dfn-paneled" data-dfn-type="dfn" data-noexport id="queue-a-perfor
      <li><span class="dfn-paneled" id="5d7209e9">Window</span>
     </ul>
    <li>
+    <a data-link-type="biblio">[INFRA]</a> defines the following terms:
+    <ul>
+     <li><span class="dfn-paneled" id="16d07e10">for each</span>
+     <li><span class="dfn-paneled" id="692595fe">ordered set</span>
+    </ul>
+   <li>
+    <a data-link-type="biblio">[PAINT-TIMING]</a> defines the following terms:
+    <ul>
+     <li><span class="dfn-paneled" id="0f3bdec9">PaintTimingMixin</span>
+     <li><span class="dfn-paneled" id="76cea803">element</span>
+     <li><span class="dfn-paneled" id="3b786c72">exposed for paint timing</span>
+     <li><span class="dfn-paneled" id="eab31e28">paint timing info</span>
+     <li><span class="dfn-paneled" id="2d4a3f51">paintTime</span>
+     <li><span class="dfn-paneled" id="a2de40e9">pending image record</span>
+     <li><span class="dfn-paneled" id="85932d17">set of owned text nodes</span>
+    </ul>
+   <li>
     <a data-link-type="biblio">[PERFORMANCE-TIMELINE]</a> defines the following terms:
     <ul>
      <li><span class="dfn-paneled" id="a7f8f241">PerformanceEntry</span>
-     <li><span class="dfn-paneled" id="77012abe">PerformanceObserver</span>
      <li><span class="dfn-paneled" id="fabd3046">duration</span>
      <li><span class="dfn-paneled" id="08a90f22">entryType</span>
      <li><span class="dfn-paneled" id="09c54b53">name</span>
@@ -1212,6 +1367,7 @@ To <dfn class="dfn-paneled" data-dfn-type="dfn" data-noexport id="queue-a-perfor
     <ul>
      <li><span class="dfn-paneled" id="8855a9aa">DOMString</span>
      <li><span class="dfn-paneled" id="889e932f">Exposed</span>
+     <li><span class="dfn-paneled" id="4013a022">this</span>
      <li><span class="dfn-paneled" id="f14b47b8">unsigned long long</span>
     </ul>
   </ul>
@@ -1226,6 +1382,10 @@ To <dfn class="dfn-paneled" data-dfn-type="dfn" data-noexport id="queue-a-perfor
    <dd>Yoav Weiss. <a href="https://w3c.github.io/hr-time/"><cite>High Resolution Time</cite></a>. URL: <a href="https://w3c.github.io/hr-time/">https://w3c.github.io/hr-time/</a>
    <dt id="biblio-html">[HTML]
    <dd>Anne van Kesteren; et al. <a href="https://html.spec.whatwg.org/multipage/"><cite>HTML Standard</cite></a>. Living Standard. URL: <a href="https://html.spec.whatwg.org/multipage/">https://html.spec.whatwg.org/multipage/</a>
+   <dt id="biblio-infra">[INFRA]
+   <dd>Anne van Kesteren; Domenic Denicola. <a href="https://infra.spec.whatwg.org/"><cite>Infra Standard</cite></a>. Living Standard. URL: <a href="https://infra.spec.whatwg.org/">https://infra.spec.whatwg.org/</a>
+   <dt id="biblio-paint-timing">[PAINT-TIMING]
+   <dd>Ian Clelland; Noam Rosenthal. <a href="https://w3c.github.io/paint-timing/"><cite>Paint Timing</cite></a>. URL: <a href="https://w3c.github.io/paint-timing/">https://w3c.github.io/paint-timing/</a>
    <dt id="biblio-performance-timeline">[PERFORMANCE-TIMELINE]
    <dd>Nicolas Pena Moreno. <a href="https://w3c.github.io/performance-timeline/"><cite>Performance Timeline</cite></a>. URL: <a href="https://w3c.github.io/performance-timeline/">https://w3c.github.io/performance-timeline/</a>
    <dt id="biblio-rfc2119">[RFC2119]
@@ -1241,7 +1401,10 @@ To <dfn class="dfn-paneled" data-dfn-type="dfn" data-noexport id="queue-a-perfor
     <c- b>readonly</c-> <c- b>attribute</c-> <a class="idl-code" data-link-type="interface" href="https://webidl.spec.whatwg.org/#idl-unsigned-long-long"><c- b>unsigned</c-> <c- b>long</c-> <c- b>long</c-></a> <a class="idl-code" data-link-type="attribute" data-readonly data-type="unsigned long long" href="#dom-performancecontainertiming-size"><c- g>size</c-></a>;
     <c- b>readonly</c-> <c- b>attribute</c-> <a data-link-type="idl-name" href="https://w3c.github.io/hr-time/#dom-domhighrestimestamp"><c- n>DOMHighResTimeStamp</c-></a> <a class="idl-code" data-link-type="attribute" data-readonly data-type="DOMHighResTimeStamp" href="#dom-performancecontainertiming-firstrendertime"><c- g>firstRenderTime</c-></a>;
     <c- b>readonly</c-> <c- b>attribute</c-> <a data-link-type="idl-name" href="https://dom.spec.whatwg.org/#element"><c- n>Element</c-></a>? <a class="idl-code" data-link-type="attribute" data-readonly data-type="Element?" href="#dom-performancecontainertiming-lastpaintedelement"><c- g>lastPaintedElement</c-></a>;
+    <c- b>readonly</c-> <c- b>attribute</c-> <a data-link-type="idl-name" href="https://dom.spec.whatwg.org/#element"><c- n>Element</c-></a>? <a class="idl-code" data-link-type="attribute" data-readonly data-type="Element?" href="#dom-performancecontainertiming-rootelement"><c- g>rootElement</c-></a>;
 };
+
+<a data-link-type="idl-name" href="#performancecontainertiming"><c- n>PerformanceContainerTiming</c-></a> <c- b>includes</c-> <a data-link-type="idl-name" href="https://w3c.github.io/paint-timing/#painttimingmixin"><c- n>PaintTimingMixin</c-></a>;
 
 <c- b>partial</c-> <c- b>interface</c-> <a class="idl-code" data-link-type="interface" href="https://dom.spec.whatwg.org/#element"><c- g>Element</c-></a> {
     [<a class="idl-code" data-link-type="extended-attribute" href="https://html.spec.whatwg.org/multipage/custom-elements.html#cereactions"><c- g>CEReactions</c-></a>] <c- b>attribute</c-> <a class="idl-code" data-link-type="interface" href="https://webidl.spec.whatwg.org/#idl-DOMString"><c- b>DOMString</c-></a> <a class="idl-code" data-link-type="attribute" data-type="DOMString" href="#dom-element-containertiming"><c- g>containertiming</c-></a>;
@@ -1449,36 +1612,70 @@ function parseHTML(markup) {
 "use strict";
 {
 let dfnPanelData = {
-"08a90f22": {"dfnID":"08a90f22","dfnText":"entryType","external":true,"refSections":[{"refs":[{"id":"ref-for-dom-performanceentry-entrytype"}],"title":"5. The PerformanceContainerTiming Interface"},{"refs":[{"id":"ref-for-dom-performanceentry-entrytype\u2460"}],"title":"6.3. Reporting Paint Updates"}],"url":"https://w3c.github.io/performance-timeline/#dom-performanceentry-entrytype"},
-"09c54b53": {"dfnID":"09c54b53","dfnText":"name","external":true,"refSections":[{"refs":[{"id":"ref-for-dom-performanceentry-name"}],"title":"5. The PerformanceContainerTiming Interface"},{"refs":[{"id":"ref-for-dom-performanceentry-name\u2460"}],"title":"6.3. Reporting Paint Updates"}],"url":"https://w3c.github.io/performance-timeline/#dom-performanceentry-name"},
-"0e9f636b": {"dfnID":"0e9f636b","dfnText":"DOMHighResTimeStamp","external":true,"refSections":[{"refs":[{"id":"ref-for-dom-domhighrestimestamp"},{"id":"ref-for-dom-domhighrestimestamp\u2460"},{"id":"ref-for-dom-domhighrestimestamp\u2461"}],"title":"5. The PerformanceContainerTiming Interface"},{"refs":[{"id":"ref-for-dom-domhighrestimestamp\u2462"}],"title":"7.3. Timing Attacks"}],"url":"https://w3c.github.io/hr-time/#dom-domhighrestimestamp"},
-"296f3551": {"dfnID":"296f3551","dfnText":"Element","external":true,"refSections":[{"refs":[{"id":"ref-for-element"},{"id":"ref-for-element\u2460"}],"title":"4. Terminology"},{"refs":[{"id":"ref-for-element\u2461"},{"id":"ref-for-element\u2462"}],"title":"5. The PerformanceContainerTiming Interface"},{"refs":[{"id":"ref-for-element\u2463"},{"id":"ref-for-element\u2464"}],"title":"6.1. Extensions to the Element Interface"},{"refs":[{"id":"ref-for-element\u2465"}],"title":"6.2. Registering Container Roots"},{"refs":[{"id":"ref-for-element\u2466"}],"title":"6.3. Reporting Paint Updates"}],"url":"https://dom.spec.whatwg.org/#element"},
-"3efa5dd7": {"dfnID":"3efa5dd7","dfnText":"queue the PerformanceEntry","external":true,"refSections":[{"refs":[{"id":"ref-for-dfn-queue-a-performanceentry"}],"title":"6.3. Reporting Paint Updates"}],"url":"https://w3c.github.io/performance-timeline/#dfn-queue-a-performanceentry"},
-"402ed79d": {"dfnID":"402ed79d","dfnText":"CEReactions","external":true,"refSections":[{"refs":[{"id":"ref-for-cereactions"},{"id":"ref-for-cereactions\u2460"}],"title":"6.1. Extensions to the Element Interface"}],"url":"https://html.spec.whatwg.org/multipage/custom-elements.html#cereactions"},
-"5d7209e9": {"dfnID":"5d7209e9","dfnText":"Window","external":true,"refSections":[{"refs":[{"id":"ref-for-window"}],"title":"6. Processing Model"}],"url":"https://html.spec.whatwg.org/multipage/nav-history-apis.html#window"},
-"77012abe": {"dfnID":"77012abe","dfnText":"PerformanceObserver","external":true,"refSections":[{"refs":[{"id":"ref-for-dom-performanceobserver"}],"title":"6.3. Reporting Paint Updates"}],"url":"https://w3c.github.io/performance-timeline/#dom-performanceobserver"},
-"7c5cb560": {"dfnID":"7c5cb560","dfnText":"supportedEntryTypes","external":true,"refSections":[{"refs":[{"id":"ref-for-dom-performanceobserver-supportedentrytypes"}],"title":"6. Processing Model"}],"url":"https://w3c.github.io/performance-timeline/#dom-performanceobserver-supportedentrytypes"},
-"8855a9aa": {"dfnID":"8855a9aa","dfnText":"DOMString","external":true,"refSections":[{"refs":[{"id":"ref-for-idl-DOMString"}],"title":"5. The PerformanceContainerTiming Interface"},{"refs":[{"id":"ref-for-idl-DOMString\u2460"},{"id":"ref-for-idl-DOMString\u2461"},{"id":"ref-for-idl-DOMString\u2462"}],"title":"6.1. Extensions to the Element Interface"}],"url":"https://webidl.spec.whatwg.org/#idl-DOMString"},
+"08a90f22": {"dfnID":"08a90f22","dfnText":"entryType","external":true,"refSections":[{"refs":[{"id":"ref-for-dom-performanceentry-entrytype"}],"title":"5. The PerformanceContainerTiming Interface"},{"refs":[{"id":"ref-for-dom-performanceentry-entrytype\u2460"}],"title":"6.11. Create a Container Timing Entry"}],"url":"https://w3c.github.io/performance-timeline/#dom-performanceentry-entrytype"},
+"09c54b53": {"dfnID":"09c54b53","dfnText":"name","external":true,"refSections":[{"refs":[{"id":"ref-for-dom-performanceentry-name"}],"title":"5. The PerformanceContainerTiming Interface"},{"refs":[{"id":"ref-for-dom-performanceentry-name\u2460"}],"title":"6.11. Create a Container Timing Entry"}],"url":"https://w3c.github.io/performance-timeline/#dom-performanceentry-name"},
+"0e9f636b": {"dfnID":"0e9f636b","dfnText":"DOMHighResTimeStamp","external":true,"refSections":[{"refs":[{"id":"ref-for-dom-domhighrestimestamp"}],"title":"5. The PerformanceContainerTiming Interface"},{"refs":[{"id":"ref-for-dom-domhighrestimestamp\u2460"}],"title":"7.3. Timing Attacks"}],"url":"https://w3c.github.io/hr-time/#dom-domhighrestimestamp"},
+"0f3bdec9": {"dfnID":"0f3bdec9","dfnText":"PaintTimingMixin","external":true,"refSections":[{"refs":[{"id":"ref-for-painttimingmixin"}],"title":"5. The PerformanceContainerTiming Interface"}],"url":"https://w3c.github.io/paint-timing/#painttimingmixin"},
+"16d07e10": {"dfnID":"16d07e10","dfnText":"for each","external":true,"refSections":[{"refs":[{"id":"ref-for-list-iterate"},{"id":"ref-for-list-iterate\u2460"},{"id":"ref-for-list-iterate\u2461"}],"title":"6.5. Report Container Timing Updates"}],"url":"https://infra.spec.whatwg.org/#list-iterate"},
+"27d9b7ea": {"dfnID":"27d9b7ea","dfnText":"element","external":true,"refSections":[{"refs":[{"id":"ref-for-concept-element"}],"title":"6.5. Report Container Timing Updates"}],"url":"https://dom.spec.whatwg.org/#concept-element"},
+"296f3551": {"dfnID":"296f3551","dfnText":"Element","external":true,"refSections":[{"refs":[{"id":"ref-for-element"},{"id":"ref-for-element\u2460"}],"title":"4. Terminology"},{"refs":[{"id":"ref-for-element\u2461"},{"id":"ref-for-element\u2462"},{"id":"ref-for-element\u2463"},{"id":"ref-for-element\u2464"}],"title":"5. The PerformanceContainerTiming Interface"},{"refs":[{"id":"ref-for-element\u2465"}],"title":"6.1. Per-Document State"},{"refs":[{"id":"ref-for-element\u2466"},{"id":"ref-for-element\u2467"},{"id":"ref-for-element\u2468"}],"title":"6.2. Extensions to the Element Interface"},{"refs":[{"id":"ref-for-element\u2460\u24ea"}],"title":"6.3. Container Timing Record"},{"refs":[{"id":"ref-for-element\u2460\u2460"}],"title":"6.4. Registering Container Roots"},{"refs":[{"id":"ref-for-element\u2460\u2461"}],"title":"6.6. Potentially add Container Timing Entries"},{"refs":[{"id":"ref-for-element\u2460\u2462"}],"title":"6.7. Getting the parent container root Element"},{"refs":[{"id":"ref-for-element\u2460\u2463"},{"id":"ref-for-element\u2460\u2464"}],"title":"6.8. Contributes to Container Timing"},{"refs":[{"id":"ref-for-element\u2460\u2465"}],"title":"6.9. Getting the container root Element"},{"refs":[{"id":"ref-for-element\u2460\u2466"},{"id":"ref-for-element\u2460\u2467"}],"title":"6.10. Maybe Update Last New Painted Area"}],"url":"https://dom.spec.whatwg.org/#element"},
+"2d4a3f51": {"dfnID":"2d4a3f51","dfnText":"paintTime","external":true,"refSections":[{"refs":[{"id":"ref-for-dom-painttimingmixin-painttime"},{"id":"ref-for-dom-painttimingmixin-painttime\u2460"}],"title":"6.11. Create a Container Timing Entry"}],"url":"https://w3c.github.io/paint-timing/#dom-painttimingmixin-painttime"},
+"3b786c72": {"dfnID":"3b786c72","dfnText":"exposed for paint timing","external":true,"refSections":[{"refs":[{"id":"ref-for-exposed-for-paint-timing"},{"id":"ref-for-exposed-for-paint-timing\u2460"}],"title":"6.5. Report Container Timing Updates"}],"url":"https://w3c.github.io/paint-timing/#exposed-for-paint-timing"},
+"3efa5dd7": {"dfnID":"3efa5dd7","dfnText":"queue the PerformanceEntry","external":true,"refSections":[{"refs":[{"id":"ref-for-dfn-queue-a-performanceentry"}],"title":"6.11. Create a Container Timing Entry"}],"url":"https://w3c.github.io/performance-timeline/#dfn-queue-a-performanceentry"},
+"4013a022": {"dfnID":"4013a022","dfnText":"this","external":true,"refSections":[{"refs":[{"id":"ref-for-this"},{"id":"ref-for-this\u2460"},{"id":"ref-for-this\u2461"},{"id":"ref-for-this\u2462"},{"id":"ref-for-this\u2463"},{"id":"ref-for-this\u2464"},{"id":"ref-for-this\u2465"}],"title":"5. The PerformanceContainerTiming Interface"}],"url":"https://webidl.spec.whatwg.org/#this"},
+"402ed79d": {"dfnID":"402ed79d","dfnText":"CEReactions","external":true,"refSections":[{"refs":[{"id":"ref-for-cereactions"},{"id":"ref-for-cereactions\u2460"}],"title":"6.2. Extensions to the Element Interface"}],"url":"https://html.spec.whatwg.org/multipage/custom-elements.html#cereactions"},
+"597088f0": {"dfnID":"597088f0","dfnText":"Text","external":true,"refSections":[{"refs":[{"id":"ref-for-text"}],"title":"6.5. Report Container Timing Updates"}],"url":"https://dom.spec.whatwg.org/#text"},
+"5d7209e9": {"dfnID":"5d7209e9","dfnText":"Window","external":true,"refSections":[{"refs":[{"id":"ref-for-window"}],"title":"6. Processing Model"},{"refs":[{"id":"ref-for-window\u2460"}],"title":"6.6. Potentially add Container Timing Entries"}],"url":"https://html.spec.whatwg.org/multipage/nav-history-apis.html#window"},
+"692595fe": {"dfnID":"692595fe","dfnText":"ordered set","external":true,"refSections":[{"refs":[{"id":"ref-for-ordered-set"},{"id":"ref-for-ordered-set\u2460"}],"title":"6.5. Report Container Timing Updates"}],"url":"https://infra.spec.whatwg.org/#ordered-set"},
+"76cea803": {"dfnID":"76cea803","dfnText":"element","external":true,"refSections":[{"refs":[{"id":"ref-for-pending-image-record-element"}],"title":"6.5. Report Container Timing Updates"}],"url":"https://w3c.github.io/paint-timing/#pending-image-record-element"},
+"7c5cb560": {"dfnID":"7c5cb560","dfnText":"supportedEntryTypes","external":true,"refSections":[{"refs":[{"id":"ref-for-dom-performanceobserver-supportedentrytypes"}],"title":"6. Processing Model"},{"refs":[{"id":"ref-for-dom-performanceobserver-supportedentrytypes\u2460"}],"title":"6.6. Potentially add Container Timing Entries"}],"url":"https://w3c.github.io/performance-timeline/#dom-performanceobserver-supportedentrytypes"},
+"85394472": {"dfnID":"85394472","dfnText":"Document","external":true,"refSections":[{"refs":[{"id":"ref-for-document"}],"title":"6.1. Per-Document State"},{"refs":[{"id":"ref-for-document\u2460"}],"title":"6.5. Report Container Timing Updates"},{"refs":[{"id":"ref-for-document\u2461"}],"title":"6.10. Maybe Update Last New Painted Area"}],"url":"https://dom.spec.whatwg.org/#document"},
+"85932d17": {"dfnID":"85932d17","dfnText":"set of owned text nodes","external":true,"refSections":[{"refs":[{"id":"ref-for-set-of-owned-text-nodes"},{"id":"ref-for-set-of-owned-text-nodes\u2460"}],"title":"6.5. Report Container Timing Updates"}],"url":"https://w3c.github.io/paint-timing/#set-of-owned-text-nodes"},
+"8855a9aa": {"dfnID":"8855a9aa","dfnText":"DOMString","external":true,"refSections":[{"refs":[{"id":"ref-for-idl-DOMString"},{"id":"ref-for-idl-DOMString\u2460"}],"title":"5. The PerformanceContainerTiming Interface"},{"refs":[{"id":"ref-for-idl-DOMString\u2461"},{"id":"ref-for-idl-DOMString\u2462"},{"id":"ref-for-idl-DOMString\u2463"}],"title":"6.2. Extensions to the Element Interface"},{"refs":[{"id":"ref-for-idl-DOMString\u2464"},{"id":"ref-for-idl-DOMString\u2465"}],"title":"6.3. Container Timing Record"}],"url":"https://webidl.spec.whatwg.org/#idl-DOMString"},
 "889e932f": {"dfnID":"889e932f","dfnText":"Exposed","external":true,"refSections":[{"refs":[{"id":"ref-for-Exposed"}],"title":"5. The PerformanceContainerTiming Interface"}],"url":"https://webidl.spec.whatwg.org/#Exposed"},
-"956a2c19": {"dfnID":"956a2c19","dfnText":"DOMRectReadOnly","external":true,"refSections":[{"refs":[{"id":"ref-for-domrectreadonly"},{"id":"ref-for-domrectreadonly\u2460"}],"title":"5. The PerformanceContainerTiming Interface"}],"url":"https://drafts.csswg.org/geometry-1/#domrectreadonly"},
+"956a2c19": {"dfnID":"956a2c19","dfnText":"DOMRectReadOnly","external":true,"refSections":[{"refs":[{"id":"ref-for-domrectreadonly"},{"id":"ref-for-domrectreadonly\u2460"}],"title":"5. The PerformanceContainerTiming Interface"},{"refs":[{"id":"ref-for-domrectreadonly\u2461"}],"title":"6.6. Potentially add Container Timing Entries"},{"refs":[{"id":"ref-for-domrectreadonly\u2462"}],"title":"6.10. Maybe Update Last New Painted Area"}],"url":"https://drafts.csswg.org/geometry-1/#domrectreadonly"},
+"a2de40e9": {"dfnID":"a2de40e9","dfnText":"pending image record","external":true,"refSections":[{"refs":[{"id":"ref-for-pending-image-record"}],"title":"6.5. Report Container Timing Updates"}],"url":"https://w3c.github.io/paint-timing/#pending-image-record"},
 "a7f8f241": {"dfnID":"a7f8f241","dfnText":"PerformanceEntry","external":true,"refSections":[{"refs":[{"id":"ref-for-dom-performanceentry"}],"title":"1. Introduction"},{"refs":[{"id":"ref-for-dom-performanceentry\u2460"}],"title":"5. The PerformanceContainerTiming Interface"}],"url":"https://w3c.github.io/performance-timeline/#dom-performanceentry"},
-"cc7c9b78": {"dfnID":"cc7c9b78","dfnText":"startTime","external":true,"refSections":[{"refs":[{"id":"ref-for-dom-performanceentry-starttime"}],"title":"5. The PerformanceContainerTiming Interface"},{"refs":[{"id":"ref-for-dom-performanceentry-starttime\u2460"}],"title":"6.3. Reporting Paint Updates"}],"url":"https://w3c.github.io/performance-timeline/#dom-performanceentry-starttime"},
-"container-root": {"dfnID":"container-root","dfnText":"container root","external":false,"refSections":[{"refs":[{"id":"ref-for-container-root"}],"title":"4. Terminology"},{"refs":[{"id":"ref-for-container-root\u2460"},{"id":"ref-for-container-root\u2461"},{"id":"ref-for-container-root\u2462"},{"id":"ref-for-container-root\u2463"},{"id":"ref-for-container-root\u2464"},{"id":"ref-for-container-root\u2465"},{"id":"ref-for-container-root\u2466"}],"title":"5. The PerformanceContainerTiming Interface"},{"refs":[{"id":"ref-for-container-root\u2467"},{"id":"ref-for-container-root\u2468"}],"title":"6.1. Extensions to the Element Interface"},{"refs":[{"id":"ref-for-container-root\u2460\u24ea"},{"id":"ref-for-container-root\u2460\u2460"},{"id":"ref-for-container-root\u2460\u2461"}],"title":"6.2. Registering Container Roots"},{"refs":[{"id":"ref-for-container-root\u2460\u2462"},{"id":"ref-for-container-root\u2460\u2463"}],"title":"6.3. Reporting Paint Updates"}],"url":"#container-root"},
+"cc7c9b78": {"dfnID":"cc7c9b78","dfnText":"startTime","external":true,"refSections":[{"refs":[{"id":"ref-for-dom-performanceentry-starttime"}],"title":"5. The PerformanceContainerTiming Interface"},{"refs":[{"id":"ref-for-dom-performanceentry-starttime\u2460"}],"title":"6.11. Create a Container Timing Entry"}],"url":"https://w3c.github.io/performance-timeline/#dom-performanceentry-starttime"},
+"container-root": {"dfnID":"container-root","dfnText":"container root","external":false,"refSections":[{"refs":[{"id":"ref-for-container-root"}],"title":"4. Terminology"},{"refs":[{"id":"ref-for-container-root\u2460"}],"title":"6.1. Per-Document State"},{"refs":[{"id":"ref-for-container-root\u2461"},{"id":"ref-for-container-root\u2462"}],"title":"6.2. Extensions to the Element Interface"},{"refs":[{"id":"ref-for-container-root\u2463"},{"id":"ref-for-container-root\u2464"},{"id":"ref-for-container-root\u2465"}],"title":"6.4. Registering Container Roots"},{"refs":[{"id":"ref-for-container-root\u2466"},{"id":"ref-for-container-root\u2467"},{"id":"ref-for-container-root\u2468"}],"title":"6.8. Contributes to Container Timing"},{"refs":[{"id":"ref-for-container-root\u2460\u24ea"}],"title":"6.10. Maybe Update Last New Painted Area"}],"url":"#container-root"},
+"container-root-records-map": {"dfnID":"container-root-records-map","dfnText":"container root records map","external":false,"refSections":[{"refs":[{"id":"ref-for-container-root-records-map"},{"id":"ref-for-container-root-records-map\u2460"}],"title":"6.6. Potentially add Container Timing Entries"},{"refs":[{"id":"ref-for-container-root-records-map\u2461"},{"id":"ref-for-container-root-records-map\u2462"}],"title":"6.10. Maybe Update Last New Painted Area"}],"url":"#container-root-records-map"},
 "container-timing-api": {"dfnID":"container-timing-api","dfnText":"container timing API","external":false,"refSections":[],"url":"#container-timing-api"},
-"dom-element-containertiming": {"dfnID":"dom-element-containertiming","dfnText":"containertiming","external":false,"refSections":[{"refs":[{"id":"ref-for-dom-element-containertiming"}],"title":"1. Introduction"},{"refs":[{"id":"ref-for-dom-element-containertiming\u2460"}],"title":"3. Usage Example"},{"refs":[{"id":"ref-for-dom-element-containertiming\u2461"}],"title":"4. Terminology"},{"refs":[{"id":"ref-for-dom-element-containertiming\u2462"}],"title":"5. The PerformanceContainerTiming Interface"},{"refs":[{"id":"ref-for-dom-element-containertiming\u2463"}],"title":"6.1. Extensions to the Element Interface"},{"refs":[{"id":"ref-for-dom-element-containertiming\u2464"}],"title":"6.3. Reporting Paint Updates"}],"url":"#dom-element-containertiming"},
+"container-timing-record-container-timing-record": {"dfnID":"container-timing-record-container-timing-record","dfnText":"Container Timing Record","external":false,"refSections":[{"refs":[{"id":"ref-for-container-timing-record-container-timing-record"}],"title":"6.1. Per-Document State"},{"refs":[{"id":"ref-for-container-timing-record-container-timing-record\u2460"}],"title":"6.3. Container Timing Record"},{"refs":[{"id":"ref-for-container-timing-record-container-timing-record\u2461"}],"title":"6.10. Maybe Update Last New Painted Area"},{"refs":[{"id":"ref-for-container-timing-record-container-timing-record\u2462"}],"title":"6.11. Create a Container Timing Entry"}],"url":"#container-timing-record-container-timing-record"},
+"container-timing-record-haspendingchanges": {"dfnID":"container-timing-record-haspendingchanges","dfnText":"hasPendingChanges","external":false,"refSections":[{"refs":[{"id":"ref-for-container-timing-record-haspendingchanges"}],"title":"6.10. Maybe Update Last New Painted Area"}],"url":"#container-timing-record-haspendingchanges"},
+"container-timing-record-identifier": {"dfnID":"container-timing-record-identifier","dfnText":"identifier","external":false,"refSections":[{"refs":[{"id":"ref-for-container-timing-record-identifier"}],"title":"6.3. Container Timing Record"},{"refs":[{"id":"ref-for-container-timing-record-identifier\u2460"}],"title":"6.11. Create a Container Timing Entry"}],"url":"#container-timing-record-identifier"},
+"container-timing-record-lastnewpaintedareaelement": {"dfnID":"container-timing-record-lastnewpaintedareaelement","dfnText":"lastNewPaintedAreaElement","external":false,"refSections":[{"refs":[{"id":"ref-for-container-timing-record-lastnewpaintedareaelement"}],"title":"6.10. Maybe Update Last New Painted Area"},{"refs":[{"id":"ref-for-container-timing-record-lastnewpaintedareaelement\u2460"}],"title":"6.11. Create a Container Timing Entry"}],"url":"#container-timing-record-lastnewpaintedareaelement"},
+"container-timing-record-lastnewpaintedareapainttiminginfo": {"dfnID":"container-timing-record-lastnewpaintedareapainttiminginfo","dfnText":"lastNewPaintedAreaPaintTimingInfo","external":false,"refSections":[{"refs":[{"id":"ref-for-container-timing-record-lastnewpaintedareapainttiminginfo"}],"title":"6.10. Maybe Update Last New Painted Area"},{"refs":[{"id":"ref-for-container-timing-record-lastnewpaintedareapainttiminginfo\u2460"}],"title":"6.11. Create a Container Timing Entry"}],"url":"#container-timing-record-lastnewpaintedareapainttiminginfo"},
+"container-timing-record-paintedregion": {"dfnID":"container-timing-record-paintedregion","dfnText":"paintedRegion","external":false,"refSections":[{"refs":[{"id":"ref-for-container-timing-record-paintedregion"},{"id":"ref-for-container-timing-record-paintedregion\u2460"}],"title":"6.10. Maybe Update Last New Painted Area"},{"refs":[{"id":"ref-for-container-timing-record-paintedregion\u2461"},{"id":"ref-for-container-timing-record-paintedregion\u2462"}],"title":"6.11. Create a Container Timing Entry"}],"url":"#container-timing-record-paintedregion"},
+"container-timing-record-painttiminginfo": {"dfnID":"container-timing-record-painttiminginfo","dfnText":"paintTimingInfo","external":false,"refSections":[{"refs":[{"id":"ref-for-container-timing-record-painttiminginfo"}],"title":"6.3. Container Timing Record"},{"refs":[{"id":"ref-for-container-timing-record-painttiminginfo\u2460"}],"title":"6.11. Create a Container Timing Entry"}],"url":"#container-timing-record-painttiminginfo"},
+"containertiming-firstrendertime": {"dfnID":"containertiming-firstrendertime","dfnText":"firstRenderTime","external":false,"refSections":[{"refs":[{"id":"ref-for-containertiming-firstrendertime"}],"title":"5. The PerformanceContainerTiming Interface"}],"url":"#containertiming-firstrendertime"},
+"containertiming-identifier": {"dfnID":"containertiming-identifier","dfnText":"identifier","external":false,"refSections":[{"refs":[{"id":"ref-for-containertiming-identifier"}],"title":"5. The PerformanceContainerTiming Interface"}],"url":"#containertiming-identifier"},
+"containertiming-intersectionrect": {"dfnID":"containertiming-intersectionrect","dfnText":"intersectionRect","external":false,"refSections":[{"refs":[{"id":"ref-for-containertiming-intersectionrect"}],"title":"5. The PerformanceContainerTiming Interface"}],"url":"#containertiming-intersectionrect"},
+"containertiming-lastpaintedelement": {"dfnID":"containertiming-lastpaintedelement","dfnText":"lastPaintedElement","external":false,"refSections":[{"refs":[{"id":"ref-for-containertiming-lastpaintedelement"}],"title":"5. The PerformanceContainerTiming Interface"}],"url":"#containertiming-lastpaintedelement"},
+"containertiming-rendertime": {"dfnID":"containertiming-rendertime","dfnText":"renderTime","external":false,"refSections":[{"refs":[{"id":"ref-for-containertiming-rendertime"}],"title":"5. The PerformanceContainerTiming Interface"}],"url":"#containertiming-rendertime"},
+"containertiming-rootelement": {"dfnID":"containertiming-rootelement","dfnText":"rootElement","external":false,"refSections":[{"refs":[{"id":"ref-for-containertiming-rootelement"}],"title":"5. The PerformanceContainerTiming Interface"}],"url":"#containertiming-rootelement"},
+"containertiming-size": {"dfnID":"containertiming-size","dfnText":"size","external":false,"refSections":[{"refs":[{"id":"ref-for-containertiming-size"}],"title":"5. The PerformanceContainerTiming Interface"}],"url":"#containertiming-size"},
+"contribute-to-container-timing": {"dfnID":"contribute-to-container-timing","dfnText":"contributes to the container timing","external":false,"refSections":[{"refs":[{"id":"ref-for-contribute-to-container-timing"},{"id":"ref-for-contribute-to-container-timing\u2460"}],"title":"6.5. Report Container Timing Updates"}],"url":"#contribute-to-container-timing"},
+"create-a-container-timing-record": {"dfnID":"create-a-container-timing-record","dfnText":"create a Container Timing Record","external":false,"refSections":[{"refs":[{"id":"ref-for-create-a-container-timing-record"}],"title":"6.6. Potentially add Container Timing Entries"},{"refs":[{"id":"ref-for-create-a-container-timing-record\u2460"}],"title":"6.10. Maybe Update Last New Painted Area"}],"url":"#create-a-container-timing-record"},
+"d462b34f": {"dfnID":"d462b34f","dfnText":"node","external":true,"refSections":[{"refs":[{"id":"ref-for-boundary-point-node"}],"title":"6.5. Report Container Timing Updates"}],"url":"https://dom.spec.whatwg.org/#boundary-point-node"},
+"dom-element-containertiming": {"dfnID":"dom-element-containertiming","dfnText":"containertiming","external":false,"refSections":[{"refs":[{"id":"ref-for-dom-element-containertiming"}],"title":"1. Introduction"},{"refs":[{"id":"ref-for-dom-element-containertiming\u2460"}],"title":"3. Usage Example"},{"refs":[{"id":"ref-for-dom-element-containertiming\u2461"}],"title":"4. Terminology"},{"refs":[{"id":"ref-for-dom-element-containertiming\u2462"}],"title":"6.2. Extensions to the Element Interface"}],"url":"#dom-element-containertiming"},
 "dom-element-containertiming-ignore": {"dfnID":"dom-element-containertiming-ignore","dfnText":"containertiming-ignore","external":false,"refSections":[{"refs":[{"id":"ref-for-dom-element-containertiming-ignore"}],"title":"3.1. Ignoring Subtrees"},{"refs":[{"id":"ref-for-dom-element-containertiming-ignore\u2460"}],"title":"4. Terminology"}],"url":"#dom-element-containertiming-ignore"},
 "dom-element-containertimingignore": {"dfnID":"dom-element-containertimingignore","dfnText":"containertimingIgnore","external":false,"refSections":[],"url":"#dom-element-containertimingignore"},
-"dom-performancecontainertiming-firstrendertime": {"dfnID":"dom-performancecontainertiming-firstrendertime","dfnText":"firstRenderTime","external":false,"refSections":[{"refs":[{"id":"ref-for-dom-performancecontainertiming-firstrendertime"}],"title":"5. The PerformanceContainerTiming Interface"},{"refs":[{"id":"ref-for-dom-performancecontainertiming-firstrendertime\u2460"}],"title":"6.3. Reporting Paint Updates"}],"url":"#dom-performancecontainertiming-firstrendertime"},
-"dom-performancecontainertiming-identifier": {"dfnID":"dom-performancecontainertiming-identifier","dfnText":"identifier","external":false,"refSections":[{"refs":[{"id":"ref-for-dom-performancecontainertiming-identifier"}],"title":"5. The PerformanceContainerTiming Interface"},{"refs":[{"id":"ref-for-dom-performancecontainertiming-identifier\u2460"}],"title":"6.1. Extensions to the Element Interface"},{"refs":[{"id":"ref-for-dom-performancecontainertiming-identifier\u2461"}],"title":"6.3. Reporting Paint Updates"}],"url":"#dom-performancecontainertiming-identifier"},
-"dom-performancecontainertiming-intersectionrect": {"dfnID":"dom-performancecontainertiming-intersectionrect","dfnText":"intersectionRect","external":false,"refSections":[{"refs":[{"id":"ref-for-dom-performancecontainertiming-intersectionrect"}],"title":"5. The PerformanceContainerTiming Interface"},{"refs":[{"id":"ref-for-dom-performancecontainertiming-intersectionrect\u2460"}],"title":"6.3. Reporting Paint Updates"}],"url":"#dom-performancecontainertiming-intersectionrect"},
-"dom-performancecontainertiming-lastpaintedelement": {"dfnID":"dom-performancecontainertiming-lastpaintedelement","dfnText":"lastPaintedElement","external":false,"refSections":[{"refs":[{"id":"ref-for-dom-performancecontainertiming-lastpaintedelement"}],"title":"5. The PerformanceContainerTiming Interface"},{"refs":[{"id":"ref-for-dom-performancecontainertiming-lastpaintedelement\u2460"}],"title":"6.3. Reporting Paint Updates"}],"url":"#dom-performancecontainertiming-lastpaintedelement"},
-"dom-performancecontainertiming-size": {"dfnID":"dom-performancecontainertiming-size","dfnText":"size","external":false,"refSections":[{"refs":[{"id":"ref-for-dom-performancecontainertiming-size"}],"title":"5. The PerformanceContainerTiming Interface"},{"refs":[{"id":"ref-for-dom-performancecontainertiming-size\u2460"}],"title":"6.3. Reporting Paint Updates"}],"url":"#dom-performancecontainertiming-size"},
+"dom-performancecontainertiming-firstrendertime": {"dfnID":"dom-performancecontainertiming-firstrendertime","dfnText":"firstRenderTime","external":false,"refSections":[{"refs":[{"id":"ref-for-dom-performancecontainertiming-firstrendertime"}],"title":"5. The PerformanceContainerTiming Interface"},{"refs":[{"id":"ref-for-dom-performancecontainertiming-firstrendertime\u2460"}],"title":"6.11. Create a Container Timing Entry"}],"url":"#dom-performancecontainertiming-firstrendertime"},
+"dom-performancecontainertiming-identifier": {"dfnID":"dom-performancecontainertiming-identifier","dfnText":"identifier","external":false,"refSections":[{"refs":[{"id":"ref-for-dom-performancecontainertiming-identifier"}],"title":"5. The PerformanceContainerTiming Interface"},{"refs":[{"id":"ref-for-dom-performancecontainertiming-identifier\u2460"}],"title":"6.2. Extensions to the Element Interface"},{"refs":[{"id":"ref-for-dom-performancecontainertiming-identifier\u2461"}],"title":"6.11. Create a Container Timing Entry"}],"url":"#dom-performancecontainertiming-identifier"},
+"dom-performancecontainertiming-intersectionrect": {"dfnID":"dom-performancecontainertiming-intersectionrect","dfnText":"intersectionRect","external":false,"refSections":[{"refs":[{"id":"ref-for-dom-performancecontainertiming-intersectionrect"}],"title":"5. The PerformanceContainerTiming Interface"},{"refs":[{"id":"ref-for-dom-performancecontainertiming-intersectionrect\u2460"}],"title":"6.11. Create a Container Timing Entry"}],"url":"#dom-performancecontainertiming-intersectionrect"},
+"dom-performancecontainertiming-lastpaintedelement": {"dfnID":"dom-performancecontainertiming-lastpaintedelement","dfnText":"lastPaintedElement","external":false,"refSections":[{"refs":[{"id":"ref-for-dom-performancecontainertiming-lastpaintedelement"}],"title":"5. The PerformanceContainerTiming Interface"},{"refs":[{"id":"ref-for-dom-performancecontainertiming-lastpaintedelement\u2460"}],"title":"6.11. Create a Container Timing Entry"}],"url":"#dom-performancecontainertiming-lastpaintedelement"},
+"dom-performancecontainertiming-rootelement": {"dfnID":"dom-performancecontainertiming-rootelement","dfnText":"rootElement","external":false,"refSections":[{"refs":[{"id":"ref-for-dom-performancecontainertiming-rootelement"}],"title":"5. The PerformanceContainerTiming Interface"}],"url":"#dom-performancecontainertiming-rootelement"},
+"dom-performancecontainertiming-size": {"dfnID":"dom-performancecontainertiming-size","dfnText":"size","external":false,"refSections":[{"refs":[{"id":"ref-for-dom-performancecontainertiming-size"}],"title":"5. The PerformanceContainerTiming Interface"},{"refs":[{"id":"ref-for-dom-performancecontainertiming-size\u2460"}],"title":"6.11. Create a Container Timing Entry"}],"url":"#dom-performancecontainertiming-size"},
+"eab31e28": {"dfnID":"eab31e28","dfnText":"paint timing info","external":true,"refSections":[{"refs":[{"id":"ref-for-painttimingmixin-paint-timing-info"},{"id":"ref-for-painttimingmixin-paint-timing-info\u2460"},{"id":"ref-for-painttimingmixin-paint-timing-info\u2461"}],"title":"6.3. Container Timing Record"},{"refs":[{"id":"ref-for-painttimingmixin-paint-timing-info\u2462"}],"title":"6.5. Report Container Timing Updates"},{"refs":[{"id":"ref-for-painttimingmixin-paint-timing-info\u2463"}],"title":"6.6. Potentially add Container Timing Entries"},{"refs":[{"id":"ref-for-painttimingmixin-paint-timing-info\u2464"}],"title":"6.10. Maybe Update Last New Painted Area"}],"url":"https://w3c.github.io/paint-timing/#painttimingmixin-paint-timing-info"},
 "f14b47b8": {"dfnID":"f14b47b8","dfnText":"unsigned long long","external":true,"refSections":[{"refs":[{"id":"ref-for-idl-unsigned-long-long"}],"title":"5. The PerformanceContainerTiming Interface"}],"url":"https://webidl.spec.whatwg.org/#idl-unsigned-long-long"},
-"fabd3046": {"dfnID":"fabd3046","dfnText":"duration","external":true,"refSections":[{"refs":[{"id":"ref-for-dom-performanceentry-duration"}],"title":"5. The PerformanceContainerTiming Interface"},{"refs":[{"id":"ref-for-dom-performanceentry-duration\u2460"}],"title":"6.3. Reporting Paint Updates"}],"url":"https://w3c.github.io/performance-timeline/#dom-performanceentry-duration"},
-"ignored-subtree": {"dfnID":"ignored-subtree","dfnText":"ignored subtree","external":false,"refSections":[{"refs":[{"id":"ref-for-ignored-subtree"}],"title":"6.1. Extensions to the Element Interface"},{"refs":[{"id":"ref-for-ignored-subtree\u2460"}],"title":"6.2. Registering Container Roots"},{"refs":[{"id":"ref-for-ignored-subtree\u2461"}],"title":"6.3. Reporting Paint Updates"}],"url":"#ignored-subtree"},
-"painted-region": {"dfnID":"painted-region","dfnText":"painted region","external":false,"refSections":[{"refs":[{"id":"ref-for-painted-region"}],"title":"5. The PerformanceContainerTiming Interface"},{"refs":[{"id":"ref-for-painted-region\u2460"}],"title":"6.2. Registering Container Roots"},{"refs":[{"id":"ref-for-painted-region\u2461"}],"title":"6.3. Reporting Paint Updates"}],"url":"#painted-region"},
-"performancecontainertiming": {"dfnID":"performancecontainertiming","dfnText":"PerformanceContainerTiming","external":false,"refSections":[{"refs":[{"id":"ref-for-performancecontainertiming"},{"id":"ref-for-performancecontainertiming\u2460"}],"title":"5. The PerformanceContainerTiming Interface"},{"refs":[{"id":"ref-for-performancecontainertiming\u2461"}],"title":"6.1. Extensions to the Element Interface"},{"refs":[{"id":"ref-for-performancecontainertiming\u2462"}],"title":"6.3. Reporting Paint Updates"}],"url":"#performancecontainertiming"},
-"queue-a-performancecontainertiming-entry": {"dfnID":"queue-a-performancecontainertiming-entry","dfnText":"queue a PerformanceContainerTiming entry","external":false,"refSections":[{"refs":[{"id":"ref-for-queue-a-performancecontainertiming-entry"}],"title":"6.3. Reporting Paint Updates"}],"url":"#queue-a-performancecontainertiming-entry"},
+"fabd3046": {"dfnID":"fabd3046","dfnText":"duration","external":true,"refSections":[{"refs":[{"id":"ref-for-dom-performanceentry-duration"}],"title":"5. The PerformanceContainerTiming Interface"},{"refs":[{"id":"ref-for-dom-performanceentry-duration\u2460"}],"title":"6.11. Create a Container Timing Entry"}],"url":"https://w3c.github.io/performance-timeline/#dom-performanceentry-duration"},
+"get-the-container-root-element": {"dfnID":"get-the-container-root-element","dfnText":"get the container root element","external":false,"refSections":[{"refs":[{"id":"ref-for-get-the-container-root-element"}],"title":"6.6. Potentially add Container Timing Entries"},{"refs":[{"id":"ref-for-get-the-container-root-element\u2460"}],"title":"6.7. Getting the parent container root Element"},{"refs":[{"id":"ref-for-get-the-container-root-element\u2461"}],"title":"6.9. Getting the container root Element"}],"url":"#get-the-container-root-element"},
+"get-the-parent-container-root-element": {"dfnID":"get-the-parent-container-root-element","dfnText":"get the parent container root element","external":false,"refSections":[{"refs":[{"id":"ref-for-get-the-parent-container-root-element"}],"title":"6.10. Maybe Update Last New Painted Area"}],"url":"#get-the-parent-container-root-element"},
+"ignored-subtree": {"dfnID":"ignored-subtree","dfnText":"ignored subtree","external":false,"refSections":[{"refs":[{"id":"ref-for-ignored-subtree"}],"title":"6.2. Extensions to the Element Interface"},{"refs":[{"id":"ref-for-ignored-subtree\u2460"}],"title":"6.4. Registering Container Roots"},{"refs":[{"id":"ref-for-ignored-subtree\u2461"},{"id":"ref-for-ignored-subtree\u2462"}],"title":"6.8. Contributes to Container Timing"}],"url":"#ignored-subtree"},
+"maybe-update-the-last-new-painted-area": {"dfnID":"maybe-update-the-last-new-painted-area","dfnText":"maybe update the last new painted area","external":false,"refSections":[{"refs":[{"id":"ref-for-maybe-update-the-last-new-painted-area"}],"title":"6.10. Maybe Update Last New Painted Area"}],"url":"#maybe-update-the-last-new-painted-area"},
+"painted-region": {"dfnID":"painted-region","dfnText":"painted region","external":false,"refSections":[{"refs":[{"id":"ref-for-painted-region"}],"title":"6.3. Container Timing Record"},{"refs":[{"id":"ref-for-painted-region\u2460"}],"title":"6.4. Registering Container Roots"}],"url":"#painted-region"},
+"performancecontainertiming": {"dfnID":"performancecontainertiming","dfnText":"PerformanceContainerTiming","external":false,"refSections":[{"refs":[{"id":"ref-for-performancecontainertiming"}],"title":"2.1. Life Cycle"},{"refs":[{"id":"ref-for-performancecontainertiming\u2460"},{"id":"ref-for-performancecontainertiming\u2461"},{"id":"ref-for-performancecontainertiming\u2462"}],"title":"5. The PerformanceContainerTiming Interface"},{"refs":[{"id":"ref-for-performancecontainertiming\u2463"}],"title":"6.2. Extensions to the Element Interface"},{"refs":[{"id":"ref-for-performancecontainertiming\u2464"}],"title":"6.11. Create a Container Timing Entry"}],"url":"#performancecontainertiming"},
+"potentially-add-a-containertiming-entry": {"dfnID":"potentially-add-a-containertiming-entry","dfnText":"potentially add a ContainerTiming entry","external":false,"refSections":[{"refs":[{"id":"ref-for-potentially-add-a-containertiming-entry"},{"id":"ref-for-potentially-add-a-containertiming-entry\u2460"}],"title":"6.5. Report Container Timing Updates"}],"url":"#potentially-add-a-containertiming-entry"},
 };
 
 document.addEventListener("DOMContentLoaded", ()=>{
@@ -1867,34 +2064,68 @@ function genLinkingSyntaxes(dfn) {
 "use strict";
 {
 let refsData = {
-"#container-root": {"displayText":"container root","export":true,"for_":[],"level":"1","normative":true,"shortname":"container-timing","spec":"container-timing-1","status":"local","text":"container root","type":"dfn","url":"#container-root"},
-"#dom-element-containertiming": {"displayText":"containertiming","export":true,"for_":["Element"],"level":"1","normative":true,"shortname":"container-timing","spec":"container-timing-1","status":"local","text":"containertiming","type":"attribute","url":"#dom-element-containertiming"},
-"#dom-element-containertiming-ignore": {"displayText":"containertiming-ignore","export":true,"for_":["Element"],"level":"1","normative":true,"shortname":"container-timing","spec":"container-timing-1","status":"local","text":"containertiming-ignore","type":"attribute","url":"#dom-element-containertiming-ignore"},
-"#dom-performancecontainertiming-firstrendertime": {"displayText":"firstRenderTime","export":true,"for_":["PerformanceContainerTiming"],"level":"1","normative":true,"shortname":"container-timing","spec":"container-timing-1","status":"local","text":"firstRenderTime","type":"attribute","url":"#dom-performancecontainertiming-firstrendertime"},
-"#dom-performancecontainertiming-identifier": {"displayText":"identifier","export":true,"for_":["PerformanceContainerTiming"],"level":"1","normative":true,"shortname":"container-timing","spec":"container-timing-1","status":"local","text":"identifier","type":"attribute","url":"#dom-performancecontainertiming-identifier"},
-"#dom-performancecontainertiming-intersectionrect": {"displayText":"intersectionRect","export":true,"for_":["PerformanceContainerTiming"],"level":"1","normative":true,"shortname":"container-timing","spec":"container-timing-1","status":"local","text":"intersectionRect","type":"attribute","url":"#dom-performancecontainertiming-intersectionrect"},
-"#dom-performancecontainertiming-lastpaintedelement": {"displayText":"lastPaintedElement","export":true,"for_":["PerformanceContainerTiming"],"level":"1","normative":true,"shortname":"container-timing","spec":"container-timing-1","status":"local","text":"lastPaintedElement","type":"attribute","url":"#dom-performancecontainertiming-lastpaintedelement"},
-"#dom-performancecontainertiming-size": {"displayText":"size","export":true,"for_":["PerformanceContainerTiming"],"level":"1","normative":true,"shortname":"container-timing","spec":"container-timing-1","status":"local","text":"size","type":"attribute","url":"#dom-performancecontainertiming-size"},
-"#ignored-subtree": {"displayText":"ignored subtree","export":true,"for_":[],"level":"1","normative":true,"shortname":"container-timing","spec":"container-timing-1","status":"local","text":"ignored subtree","type":"dfn","url":"#ignored-subtree"},
-"#painted-region": {"displayText":"painted region","export":true,"for_":[],"level":"1","normative":true,"shortname":"container-timing","spec":"container-timing-1","status":"local","text":"painted region","type":"dfn","url":"#painted-region"},
-"#performancecontainertiming": {"displayText":"PerformanceContainerTiming","export":true,"for_":[],"level":"1","normative":true,"shortname":"container-timing","spec":"container-timing-1","status":"local","text":"PerformanceContainerTiming","type":"interface","url":"#performancecontainertiming"},
-"#queue-a-performancecontainertiming-entry": {"displayText":"queue a performancecontainertiming entry","export":true,"for_":[],"level":"1","normative":true,"shortname":"container-timing","spec":"container-timing-1","status":"local","text":"queue a performancecontainertiming entry","type":"dfn","url":"#queue-a-performancecontainertiming-entry"},
+"#container-root": {"displayText":"container root","export":true,"for_":[],"level":"","normative":true,"shortname":"container-timing","spec":"container-timing","status":"local","text":"container root","type":"dfn","url":"#container-root"},
+"#container-root-records-map": {"displayText":"container root records map","export":true,"for_":[],"level":"","normative":true,"shortname":"container-timing","spec":"container-timing","status":"local","text":"container root records map","type":"dfn","url":"#container-root-records-map"},
+"#container-timing-record-container-timing-record": {"displayText":"container timing record","export":true,"for_":["Container Timing Record"],"level":"","normative":true,"shortname":"container-timing","spec":"container-timing","status":"local","text":"container timing record","type":"dfn","url":"#container-timing-record-container-timing-record"},
+"#container-timing-record-haspendingchanges": {"displayText":"haspendingchanges","export":true,"for_":["Container Timing Record"],"level":"","normative":true,"shortname":"container-timing","spec":"container-timing","status":"local","text":"haspendingchanges","type":"dfn","url":"#container-timing-record-haspendingchanges"},
+"#container-timing-record-identifier": {"displayText":"identifier","export":true,"for_":["Container Timing Record"],"level":"","normative":true,"shortname":"container-timing","spec":"container-timing","status":"local","text":"identifier","type":"dfn","url":"#container-timing-record-identifier"},
+"#container-timing-record-lastnewpaintedareaelement": {"displayText":"lastnewpaintedareaelement","export":true,"for_":["Container Timing Record"],"level":"","normative":true,"shortname":"container-timing","spec":"container-timing","status":"local","text":"lastnewpaintedareaelement","type":"dfn","url":"#container-timing-record-lastnewpaintedareaelement"},
+"#container-timing-record-lastnewpaintedareapainttiminginfo": {"displayText":"lastnewpaintedareapainttiminginfo","export":true,"for_":["Container Timing Record"],"level":"","normative":true,"shortname":"container-timing","spec":"container-timing","status":"local","text":"lastnewpaintedareapainttiminginfo","type":"dfn","url":"#container-timing-record-lastnewpaintedareapainttiminginfo"},
+"#container-timing-record-paintedregion": {"displayText":"paintedregion","export":true,"for_":["Container Timing Record"],"level":"","normative":true,"shortname":"container-timing","spec":"container-timing","status":"local","text":"paintedregion","type":"dfn","url":"#container-timing-record-paintedregion"},
+"#container-timing-record-painttiminginfo": {"displayText":"painttiminginfo","export":true,"for_":["Container Timing Record"],"level":"","normative":true,"shortname":"container-timing","spec":"container-timing","status":"local","text":"painttiminginfo","type":"dfn","url":"#container-timing-record-painttiminginfo"},
+"#containertiming-firstrendertime": {"displayText":"firstrendertime","export":true,"for_":["ContainerTiming"],"level":"","normative":true,"shortname":"container-timing","spec":"container-timing","status":"local","text":"firstrendertime","type":"dfn","url":"#containertiming-firstrendertime"},
+"#containertiming-identifier": {"displayText":"identifier","export":true,"for_":["ContainerTiming"],"level":"","normative":true,"shortname":"container-timing","spec":"container-timing","status":"local","text":"identifier","type":"dfn","url":"#containertiming-identifier"},
+"#containertiming-intersectionrect": {"displayText":"intersectionrect","export":true,"for_":["ContainerTiming"],"level":"","normative":true,"shortname":"container-timing","spec":"container-timing","status":"local","text":"intersectionrect","type":"dfn","url":"#containertiming-intersectionrect"},
+"#containertiming-lastpaintedelement": {"displayText":"lastpaintedelement","export":true,"for_":["ContainerTiming"],"level":"","normative":true,"shortname":"container-timing","spec":"container-timing","status":"local","text":"lastpaintedelement","type":"dfn","url":"#containertiming-lastpaintedelement"},
+"#containertiming-rendertime": {"displayText":"rendertime","export":true,"for_":["ContainerTiming"],"level":"","normative":true,"shortname":"container-timing","spec":"container-timing","status":"local","text":"rendertime","type":"dfn","url":"#containertiming-rendertime"},
+"#containertiming-rootelement": {"displayText":"rootelement","export":true,"for_":["ContainerTiming"],"level":"","normative":true,"shortname":"container-timing","spec":"container-timing","status":"local","text":"rootelement","type":"dfn","url":"#containertiming-rootelement"},
+"#containertiming-size": {"displayText":"size","export":true,"for_":["ContainerTiming"],"level":"","normative":true,"shortname":"container-timing","spec":"container-timing","status":"local","text":"size","type":"dfn","url":"#containertiming-size"},
+"#contribute-to-container-timing": {"displayText":"contribute to container timing","export":true,"for_":[],"level":"","normative":true,"shortname":"container-timing","spec":"container-timing","status":"local","text":"contribute to container timing","type":"dfn","url":"#contribute-to-container-timing"},
+"#create-a-container-timing-record": {"displayText":"create a container timing record","export":true,"for_":[],"level":"","normative":true,"shortname":"container-timing","spec":"container-timing","status":"local","text":"create a container timing record","type":"dfn","url":"#create-a-container-timing-record"},
+"#dom-element-containertiming": {"displayText":"containertiming","export":true,"for_":["Element"],"level":"","normative":true,"shortname":"container-timing","spec":"container-timing","status":"local","text":"containertiming","type":"attribute","url":"#dom-element-containertiming"},
+"#dom-element-containertiming-ignore": {"displayText":"containertiming-ignore","export":true,"for_":["Element"],"level":"","normative":true,"shortname":"container-timing","spec":"container-timing","status":"local","text":"containertiming-ignore","type":"attribute","url":"#dom-element-containertiming-ignore"},
+"#dom-performancecontainertiming-firstrendertime": {"displayText":"firstRenderTime","export":true,"for_":["PerformanceContainerTiming"],"level":"","normative":true,"shortname":"container-timing","spec":"container-timing","status":"local","text":"firstRenderTime","type":"attribute","url":"#dom-performancecontainertiming-firstrendertime"},
+"#dom-performancecontainertiming-identifier": {"displayText":"identifier","export":true,"for_":["PerformanceContainerTiming"],"level":"","normative":true,"shortname":"container-timing","spec":"container-timing","status":"local","text":"identifier","type":"attribute","url":"#dom-performancecontainertiming-identifier"},
+"#dom-performancecontainertiming-intersectionrect": {"displayText":"intersectionRect","export":true,"for_":["PerformanceContainerTiming"],"level":"","normative":true,"shortname":"container-timing","spec":"container-timing","status":"local","text":"intersectionRect","type":"attribute","url":"#dom-performancecontainertiming-intersectionrect"},
+"#dom-performancecontainertiming-lastpaintedelement": {"displayText":"lastPaintedElement","export":true,"for_":["PerformanceContainerTiming"],"level":"","normative":true,"shortname":"container-timing","spec":"container-timing","status":"local","text":"lastPaintedElement","type":"attribute","url":"#dom-performancecontainertiming-lastpaintedelement"},
+"#dom-performancecontainertiming-rootelement": {"displayText":"rootElement","export":true,"for_":["PerformanceContainerTiming"],"level":"","normative":true,"shortname":"container-timing","spec":"container-timing","status":"local","text":"rootElement","type":"attribute","url":"#dom-performancecontainertiming-rootelement"},
+"#dom-performancecontainertiming-size": {"displayText":"size","export":true,"for_":["PerformanceContainerTiming"],"level":"","normative":true,"shortname":"container-timing","spec":"container-timing","status":"local","text":"size","type":"attribute","url":"#dom-performancecontainertiming-size"},
+"#get-the-container-root-element": {"displayText":"get the container root element","export":true,"for_":[],"level":"","normative":true,"shortname":"container-timing","spec":"container-timing","status":"local","text":"get the container root element","type":"dfn","url":"#get-the-container-root-element"},
+"#get-the-parent-container-root-element": {"displayText":"get the parent container root element","export":true,"for_":[],"level":"","normative":true,"shortname":"container-timing","spec":"container-timing","status":"local","text":"get the parent container root element","type":"dfn","url":"#get-the-parent-container-root-element"},
+"#ignored-subtree": {"displayText":"ignored subtree","export":true,"for_":[],"level":"","normative":true,"shortname":"container-timing","spec":"container-timing","status":"local","text":"ignored subtree","type":"dfn","url":"#ignored-subtree"},
+"#maybe-update-the-last-new-painted-area": {"displayText":"maybe update the last new painted area","export":true,"for_":[],"level":"","normative":true,"shortname":"container-timing","spec":"container-timing","status":"local","text":"maybe update the last new painted area","type":"dfn","url":"#maybe-update-the-last-new-painted-area"},
+"#painted-region": {"displayText":"painted region","export":true,"for_":[],"level":"","normative":true,"shortname":"container-timing","spec":"container-timing","status":"local","text":"painted region","type":"dfn","url":"#painted-region"},
+"#performancecontainertiming": {"displayText":"PerformanceContainerTiming","export":true,"for_":[],"level":"","normative":true,"shortname":"container-timing","spec":"container-timing","status":"local","text":"PerformanceContainerTiming","type":"interface","url":"#performancecontainertiming"},
+"#potentially-add-a-containertiming-entry": {"displayText":"potentially add a containertiming entry","export":true,"for_":[],"level":"","normative":true,"shortname":"container-timing","spec":"container-timing","status":"local","text":"potentially add a containertiming entry","type":"dfn","url":"#potentially-add-a-containertiming-entry"},
+"https://dom.spec.whatwg.org/#boundary-point-node": {"displayText":"node","export":true,"for_":["boundary point"],"level":"1","normative":true,"shortname":"dom","spec":"dom","status":"current","text":"node","type":"dfn","url":"https://dom.spec.whatwg.org/#boundary-point-node"},
+"https://dom.spec.whatwg.org/#concept-element": {"displayText":"element","export":true,"for_":[],"level":"1","normative":true,"shortname":"dom","spec":"dom","status":"current","text":"element","type":"dfn","url":"https://dom.spec.whatwg.org/#concept-element"},
+"https://dom.spec.whatwg.org/#document": {"displayText":"Document","export":true,"for_":[],"level":"1","normative":true,"shortname":"dom","spec":"dom","status":"current","text":"Document","type":"interface","url":"https://dom.spec.whatwg.org/#document"},
 "https://dom.spec.whatwg.org/#element": {"displayText":"Element","export":true,"for_":[],"level":"1","normative":true,"shortname":"dom","spec":"dom","status":"current","text":"Element","type":"interface","url":"https://dom.spec.whatwg.org/#element"},
+"https://dom.spec.whatwg.org/#text": {"displayText":"Text","export":true,"for_":[],"level":"1","normative":true,"shortname":"dom","spec":"dom","status":"current","text":"Text","type":"interface","url":"https://dom.spec.whatwg.org/#text"},
 "https://drafts.csswg.org/geometry-1/#domrectreadonly": {"displayText":"DOMRectReadOnly","export":true,"for_":[],"level":"1","normative":true,"shortname":"geometry","spec":"geometry-1","status":"current","text":"DOMRectReadOnly","type":"interface","url":"https://drafts.csswg.org/geometry-1/#domrectreadonly"},
 "https://html.spec.whatwg.org/multipage/custom-elements.html#cereactions": {"displayText":"CEReactions","export":true,"for_":[],"level":"1","normative":true,"shortname":"html","spec":"html","status":"current","text":"CEReactions","type":"extended-attribute","url":"https://html.spec.whatwg.org/multipage/custom-elements.html#cereactions"},
 "https://html.spec.whatwg.org/multipage/nav-history-apis.html#window": {"displayText":"Window","export":true,"for_":[],"level":"1","normative":true,"shortname":"html","spec":"html","status":"current","text":"Window","type":"interface","url":"https://html.spec.whatwg.org/multipage/nav-history-apis.html#window"},
+"https://infra.spec.whatwg.org/#list-iterate": {"displayText":"for each","export":true,"for_":["list","set"],"level":"1","normative":true,"shortname":"infra","spec":"infra","status":"current","text":"for each","type":"dfn","url":"https://infra.spec.whatwg.org/#list-iterate"},
+"https://infra.spec.whatwg.org/#ordered-set": {"displayText":"ordered set","export":true,"for_":[],"level":"1","normative":true,"shortname":"infra","spec":"infra","status":"current","text":"ordered set","type":"dfn","url":"https://infra.spec.whatwg.org/#ordered-set"},
 "https://w3c.github.io/hr-time/#dom-domhighrestimestamp": {"displayText":"DOMHighResTimeStamp","export":true,"for_":[],"level":"3","normative":true,"shortname":"hr-time","spec":"hr-time-3","status":"current","text":"DOMHighResTimeStamp","type":"typedef","url":"https://w3c.github.io/hr-time/#dom-domhighrestimestamp"},
+"https://w3c.github.io/paint-timing/#dom-painttimingmixin-painttime": {"displayText":"paintTime","export":true,"for_":["PaintTimingMixin"],"level":"1","normative":true,"shortname":"paint-timing","spec":"paint-timing","status":"current","text":"paintTime","type":"attribute","url":"https://w3c.github.io/paint-timing/#dom-painttimingmixin-painttime"},
+"https://w3c.github.io/paint-timing/#exposed-for-paint-timing": {"displayText":"exposed for paint timing","export":true,"for_":[],"level":"","normative":true,"shortname":"paint-timing","spec":"paint-timing","status":"anchor-block","text":"exposed for paint timing","type":"dfn","url":"https://w3c.github.io/paint-timing/#exposed-for-paint-timing"},
+"https://w3c.github.io/paint-timing/#painttimingmixin": {"displayText":"PaintTimingMixin","export":true,"for_":[],"level":"1","normative":true,"shortname":"paint-timing","spec":"paint-timing","status":"current","text":"PaintTimingMixin","type":"interface","url":"https://w3c.github.io/paint-timing/#painttimingmixin"},
+"https://w3c.github.io/paint-timing/#painttimingmixin-paint-timing-info": {"displayText":"paint timing info","export":true,"for_":["PaintTimingMixin"],"level":"","normative":true,"shortname":"paint-timing","spec":"paint-timing","status":"anchor-block","text":"paint timing info","type":"dfn","url":"https://w3c.github.io/paint-timing/#painttimingmixin-paint-timing-info"},
+"https://w3c.github.io/paint-timing/#pending-image-record": {"displayText":"pending image record","export":true,"for_":[],"level":"","normative":true,"shortname":"paint-timing","spec":"paint-timing","status":"anchor-block","text":"pending image record","type":"dfn","url":"https://w3c.github.io/paint-timing/#pending-image-record"},
+"https://w3c.github.io/paint-timing/#pending-image-record-element": {"displayText":"element","export":true,"for_":["pending image record"],"level":"","normative":true,"shortname":"paint-timing","spec":"paint-timing","status":"anchor-block","text":"element","type":"dfn","url":"https://w3c.github.io/paint-timing/#pending-image-record-element"},
+"https://w3c.github.io/paint-timing/#set-of-owned-text-nodes": {"displayText":"set of owned text nodes","export":true,"for_":[],"level":"","normative":true,"shortname":"paint-timing","spec":"paint-timing","status":"anchor-block","text":"set of owned text nodes","type":"dfn","url":"https://w3c.github.io/paint-timing/#set-of-owned-text-nodes"},
 "https://w3c.github.io/performance-timeline/#dfn-queue-a-performanceentry": {"displayText":"queue the PerformanceEntry","export":true,"for_":[],"level":"2","normative":true,"shortname":"performance-timeline","spec":"performance-timeline-2","status":"anchor-block","text":"queue the performanceentry","type":"dfn","url":"https://w3c.github.io/performance-timeline/#dfn-queue-a-performanceentry"},
 "https://w3c.github.io/performance-timeline/#dom-performanceentry": {"displayText":"PerformanceEntry","export":true,"for_":[],"level":"1","normative":true,"shortname":"performance-timeline","spec":"performance-timeline","status":"current","text":"PerformanceEntry","type":"interface","url":"https://w3c.github.io/performance-timeline/#dom-performanceentry"},
 "https://w3c.github.io/performance-timeline/#dom-performanceentry-duration": {"displayText":"duration","export":true,"for_":["PerformanceEntry"],"level":"1","normative":true,"shortname":"performance-timeline","spec":"performance-timeline","status":"current","text":"duration","type":"attribute","url":"https://w3c.github.io/performance-timeline/#dom-performanceentry-duration"},
 "https://w3c.github.io/performance-timeline/#dom-performanceentry-entrytype": {"displayText":"entryType","export":true,"for_":["PerformanceEntry"],"level":"1","normative":true,"shortname":"performance-timeline","spec":"performance-timeline","status":"current","text":"entryType","type":"attribute","url":"https://w3c.github.io/performance-timeline/#dom-performanceentry-entrytype"},
 "https://w3c.github.io/performance-timeline/#dom-performanceentry-name": {"displayText":"name","export":true,"for_":["PerformanceEntry"],"level":"1","normative":true,"shortname":"performance-timeline","spec":"performance-timeline","status":"current","text":"name","type":"attribute","url":"https://w3c.github.io/performance-timeline/#dom-performanceentry-name"},
 "https://w3c.github.io/performance-timeline/#dom-performanceentry-starttime": {"displayText":"startTime","export":true,"for_":["PerformanceEntry"],"level":"1","normative":true,"shortname":"performance-timeline","spec":"performance-timeline","status":"current","text":"startTime","type":"attribute","url":"https://w3c.github.io/performance-timeline/#dom-performanceentry-starttime"},
-"https://w3c.github.io/performance-timeline/#dom-performanceobserver": {"displayText":"PerformanceObserver","export":true,"for_":[],"level":"1","normative":true,"shortname":"performance-timeline","spec":"performance-timeline","status":"current","text":"PerformanceObserver","type":"interface","url":"https://w3c.github.io/performance-timeline/#dom-performanceobserver"},
 "https://w3c.github.io/performance-timeline/#dom-performanceobserver-supportedentrytypes": {"displayText":"supportedEntryTypes","export":true,"for_":["PerformanceObserver"],"level":"1","normative":true,"shortname":"performance-timeline","spec":"performance-timeline","status":"current","text":"supportedEntryTypes","type":"attribute","url":"https://w3c.github.io/performance-timeline/#dom-performanceobserver-supportedentrytypes"},
 "https://webidl.spec.whatwg.org/#Exposed": {"displayText":"Exposed","export":true,"for_":[],"level":"1","normative":true,"shortname":"webidl","spec":"webidl","status":"current","text":"Exposed","type":"extended-attribute","url":"https://webidl.spec.whatwg.org/#Exposed"},
 "https://webidl.spec.whatwg.org/#idl-DOMString": {"displayText":"DOMString","export":true,"for_":[],"level":"1","normative":true,"shortname":"webidl","spec":"webidl","status":"current","text":"DOMString","type":"interface","url":"https://webidl.spec.whatwg.org/#idl-DOMString"},
 "https://webidl.spec.whatwg.org/#idl-unsigned-long-long": {"displayText":"unsigned long long","export":true,"for_":[],"level":"1","normative":true,"shortname":"webidl","spec":"webidl","status":"current","text":"unsigned long long","type":"interface","url":"https://webidl.spec.whatwg.org/#idl-unsigned-long-long"},
+"https://webidl.spec.whatwg.org/#this": {"displayText":"this","export":true,"for_":[],"level":"1","normative":true,"shortname":"webidl","spec":"webidl","status":"current","text":"this","type":"dfn","url":"https://webidl.spec.whatwg.org/#this"},
 };
 
 function mkRefHint(link, ref) {
