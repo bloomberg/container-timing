@@ -311,7 +311,7 @@ TPAC 2025:
 
 - Chromium: Implemented behind flag in Canary and Beta
 - Firefox: [Waiting on response](https://github.com/mozilla/standards-positions/issues/1155)
-- Webkit: Unknown
+- Webkit: [Waiting on response](https://github.com/WebKit/standards-positions/issues/442)
 
 ## Glossary
 
