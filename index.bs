@@ -164,6 +164,8 @@ The <dfn attribute>rootElement</dfn> attribute must return the value of [=this=]
 
 </div>
 
+Note: The user agent needs to maintain the <a>container root records map</a> so that removed content does not introduce memory leaks. In particular, it can tie the lifetime of the entries to weak pointers to the {{Element}}s so that they can be cleaned up sometime after the {{Element}}s are removed. Since the map is not exposed to web developers, this does not expose garbage collection timing.
+
 Processing Model {#processing-model}
 =====================================
 
@@ -175,6 +177,7 @@ Per-Document State {#per-document-state}
 ----------------------------------------
 
 For each {{Document}}, the user agent must maintain a <dfn export>container root records map</dfn> that maps [=container root=] {{Element}}s to [=Container Timing Record=] objects.
+
 
 
 Extensions to the {{Element}} Interface {#extensions-to-element}
@@ -230,48 +233,38 @@ When an {{Element}} with a [^containertiming^] content attribute is connected to
 2. The user agent must initialize an empty [=painted region=] for the [=container root=].
 3. The user agent must track all paint operations within the [=container root=]'s subtree, excluding any [=ignored subtrees=].
 
-Report Container Timing Updates {#reporting-updates}
-----------------------------------------------------
+Handle Element Painted for Container Timing {#handle-element-painted}
+----------------------------------------------------------------------
 
-When asked to report a container paint given a {{Document}} |document|, a [=PaintTimingMixin/paint timing info=] |paintTimingInfo|, an [=ordered set=] of [=pending image records=] |paintedImages|, and an [=ordered set=] of [=/elements=] |paintedTextNodes|, perform the following steps:
+<div algorithm="handle element painted for container timing">
+When an element is painted and the user agent needs to handle container timing updates, given a {{Document}} |document|, a [=PaintTimingMixin/paint timing info=] |paintTimingInfo|, an {{Element}} |element|, and a {{DOMRectReadOnly}} |intersectionRect|, perform the following steps:
 
-    1. [=list/For each=] |record| of |paintedImages|:
-        1. Let |imageElement| be |record|'s [=pending image record/element=].
-        1. If |imageElement| is not [=exposed for paint timing=], given |document|, continue.
-        1. If |imageElement| does not [=Contribute to container timing=] continue.
-        1. Let |intersectionRect| be the value returned by the intersection rect algorithm using |imageElement| as the target and viewport as the root.
-        1. <a>Potentially add a ContainerTiming entry</a> with |paintTimingInfo|, |imageElement| and |intersectionRect|.
-    1. [=list/For each=] |textNode| of |paintedTextNodes|,
-        1. If |textNode| is not [=exposed for paint timing=], given |document|, continue.
-        1. Let |textNodeElement| be the <a>set of owned text nodes</a> owning element.
-        1. If |textNodeElement| does not [=Contribute to container timing=] continue.
-        1. Let |intersectionRect| be an empty rectangle.
-        1. [=set/For each=] {{Text}} <a>node</a> |text| of |textNode|'s <a>set of owned text nodes</a>:
-            1. Augment |intersectionRect| to be smallest rectangle containing the border box of |text| and |intersectionRect|.
-        1. Intersect |intersectionRect| with the visual viewport.
-        1. <a>Potentially add a ContainerTiming entry</a> with |paintTimingInfo|, |textNodeElement| and |intersectionRect|.
+1. If |element| does not [=Contribute to container timing=], return.
+2. Let |containerRoot| be the result of <a>get the container root element</a> given |element|.
+3. If |containerRoot| is null, return.
+4. Let |record| be the entry in |document|'s <a>container root records map</a> for |containerRoot|. If no such entry exists, set |record| to the result of <a>create a Container Timing Record</a> given |paintTimingInfo| and the value of |containerRoot|'s [^containertiming^] content attribute; then add (|containerRoot| → |record|) to |document|'s <a>container root records map</a>.
+5. Let |enclosingRect| be the smallest enclosing rectangle of |intersectionRect|.
+6. <a>Maybe update the last new painted area</a> for |record| given |document|, |containerRoot|, |element|, |enclosingRect|, and |paintTimingInfo|.
+7. Mark the {{Document}} as having pending container timing changes.
+        </div>
 
+Note: This algorithm is invoked for each image or text node that paints. The intersection rectangle should be computed using the <a>intersection rect algorithm</a> with the element as target and viewport as root, intersected with the visual viewport. For text nodes, the intersection rectangle is the smallest rectangle containing the border boxes of all text nodes in the <a>set of owned text nodes</a>, intersected with the visual viewport.
 
-Potentially add Container Timing Entries {#potentially-add-container-timing-entries}
--------------------------------------------------------
+Emit Container Timing Entries {#emit-container-timing-entries}
+--------------------------------------------------------------
 
-Note: A user agent implementing the Container Timing API would need to include <code>"container"</code> in {{PerformanceObserver/supportedEntryTypes}} for {{Window}} contexts.
-This allows developers to detect support for the API.
+<div algorithm="emit container timing entries">
+When asked to emit container timing entries for a {{Document}} |document|, perform the following steps. This should be called once per frame after all paint operations have been processed:
 
-In order to <dfn>potentially add a ContainerTiming entry</dfn>, the user agent must perform the following steps:
+1. If |document| does not have pending container timing changes, return.
+2. [=map/For each=] |containerRoot| → |record| of |document|'s <a>container root records map</a>:
+    1. If |record|'s [=Container Timing Record/hasPendingChanges=] is false, continue.
+    2. <a>Create a Container Timing entry</a> given |record| and |containerRoot|.
+    3. Set |record|'s [=Container Timing Record/hasPendingChanges=] to false.
+3. Mark the {{Document}} as no longer having pending container timing changes.
+        </div>
 
-<div algorithm="ContainerTiming potentially-add-entry">
-    : Input
-    ::  <var ignore="">intersectionRect</var>, a {{DOMRectReadOnly}}
-    ::  |paintTimingInfo|, a [=PaintTimingMixin/paint timing info=]
-    ::  |element|, an {{Element}}
-    : Output
-    ::  None
-        1. Let |containerRoot| be the result of <a>get the container root element</a> given |element|.
-        1. If |containerRoot| is null, return.
-        1. Let |record| be the entry in |document|'s <a>container root records map</a> for |containerRoot|. If no such entry exists, set |record| to the result of <a>create a Container Timing Record</a> given |paintTimingInfo| and the value of |containerRoot|'s [^containertiming^] content attribute; then add (|containerRoot| → |record|) to |document|'s <a>container root records map</a>.
-
-</div>
+Note: Unlike some other paint timing APIs that may emit multiple entries per painted element, Container Timing accumulates painted regions for each [=container root=] and emits at most one {{PerformanceContainerTiming}} entry per container root per frame. This batching approach is more efficient and provides a holistic view of the container's paint state.
 
 
 Getting the parent container root Element {#getting-parent-container-root-element}
@@ -340,21 +333,22 @@ To <dfn>maybe update the last new painted area</dfn> for a [=Container Timing Re
 Create a Container Timing Entry {#create-container-timing-entry}
 --------------------------------
 
-In order to create a Container Timing entry given a [=Container Timing Record=] |record|, the user agent must perform the following steps:
+<div algorithm="create a container timing entry">
+In order to <dfn>create a Container Timing entry</dfn> given a [=Container Timing Record=] |record| and a [=container root=] {{Element}} |containerRoot|, the user agent must perform the following steps:
 
-    : Output
-    ::  None
-        1. Let |entry| be a new {{PerformanceContainerTiming}} entry with its:
-            * {{PerformanceEntry/entryType}} set to "<code>container</code>"
-            * {{PerformanceEntry/name}} set to the empty string
-            * {{PerformanceEntry/startTime}} set to |record|'s [=Container Timing Record/lastNewPaintedAreaPaintTimingInfo=]'s {{PaintTimingMixin/paintTime}}
-            * {{PerformanceEntry/duration}} set to 0
-            * {{PerformanceContainerTiming/identifier}} set to |record|'s [=Container Timing Record/identifier=]
-            * {{PerformanceContainerTiming/firstRenderTime}} set to |record|'s [=Container Timing Record/paintTimingInfo=]'s {{PaintTimingMixin/paintTime}}
-            * {{PerformanceContainerTiming/intersectionRect}} set to the bounding rectangle of |record|'s [=Container Timing Record/paintedRegion=]
-            * {{PerformanceContainerTiming/size}} set to the total area of |record|'s [=Container Timing Record/paintedRegion=]
-            * {{PerformanceContainerTiming/lastPaintedElement}} set to |record|'s [=Container Timing Record/lastNewPaintedAreaElement=]
-        2. <a>Queue the PerformanceEntry</a> |entry|
+1. Let |entry| be a new {{PerformanceContainerTiming}} entry with its:
+    * {{PerformanceEntry/entryType}} set to "<code>container</code>"
+    * {{PerformanceEntry/name}} set to the empty string
+    * {{PerformanceEntry/startTime}} set to |record|'s [=Container Timing Record/lastNewPaintedAreaPaintTimingInfo=]'s {{PaintTimingMixin/paintTime}}
+    * {{PerformanceEntry/duration}} set to 0
+    * {{PerformanceContainerTiming/identifier}} set to |record|'s [=Container Timing Record/identifier=]
+    * {{PerformanceContainerTiming/firstRenderTime}} set to |record|'s [=Container Timing Record/paintTimingInfo=]'s {{PaintTimingMixin/paintTime}}
+    * {{PerformanceContainerTiming/intersectionRect}} set to the bounding rectangle of |record|'s [=Container Timing Record/paintedRegion=]
+    * {{PerformanceContainerTiming/size}} set to the total area of |record|'s [=Container Timing Record/paintedRegion=]
+    * {{PerformanceContainerTiming/lastPaintedElement}} set to |record|'s [=Container Timing Record/lastNewPaintedAreaElement=]
+    * {{PerformanceContainerTiming/rootElement}} set to |containerRoot|
+2. <a>Queue the PerformanceEntry</a> |entry|.
+</div>
 
 Security and Privacy Considerations {#security-privacy}
 =======================================================
