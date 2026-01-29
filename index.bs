@@ -329,6 +329,7 @@ To <dfn>maybe update the last new painted area</dfn> for a [=Container Timing Re
 11. <a>Maybe update the last new painted area</a> for |parentRecord| given |document|, |parentContainerRoot|, |element|, |enclosingRect|, and |paintTimingInfo|.
     </div>
 
+Note: This algorithm reports any change to the painted region, regardless of size. Even a 1 pixel change in the painted area will result in a new {{PerformanceContainerTiming}} entry being queued. Developers who wish to filter out small changes may do so by comparing the {{PerformanceContainerTiming/size}} values between entries.
 
 Create a Container Timing Entry {#create-container-timing-entry}
 --------------------------------
@@ -348,7 +349,7 @@ In order to <dfn>create a Container Timing entry</dfn> given a [=Container Timin
     * {{PerformanceContainerTiming/lastPaintedElement}} set to |record|'s [=Container Timing Record/lastNewPaintedAreaElement=]
     * {{PerformanceContainerTiming/rootElement}} set to |containerRoot|
 2. <a>Queue the PerformanceEntry</a> |entry|.
-</div>
+    </div>
 
 Security and Privacy Considerations {#security-privacy}
 =======================================================
