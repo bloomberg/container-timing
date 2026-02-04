@@ -1,9 +1,54 @@
 .overlay {
-    position:absolute;
-    background-color: #0000FF64;
+  position: absolute;
+  background-color: #0000ff64;
 }
 
 .boundingRect {
-    position: absolute;
-    border: 3px dashed #ff0000a8;
+  position: absolute;
+  border: 3px dashed #ff0000a8;
+  anchor-name: --container-anchor;
+}
+
+.lcp-rect {
+  position: absolute;
+  background-color: #cee712a8;
+  anchor-name: --lcp-anchor;
+}
+
+.lcp-info-box {
+  position: fixed;
+  position-anchor: --lcp-anchor;
+  top: anchor(bottom);
+  left: anchor(left);
+  background-color: #333;
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
+  font-size: 14px;
+  z-index: 999999;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
+
+.container-info-box {
+  position: fixed;
+  position-anchor: --container-anchor;
+  top: anchor(bottom);
+  left: anchor(left);
+  background-color: #c0392b;
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
+  font-size: 14px;
+  z-index: 999999;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
 }
