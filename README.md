@@ -234,10 +234,13 @@ _The polyfill has been deprecated in favor of trying out the API in Chrome Canar
 
 Container Timing is now available in Chrome Canary behind a flag. To enable it:
 
+1. Ensure your Chromium is recent enough (144 and upwards)
 1. Open `chrome://flags/#enable-experimental-web-platform-features`
-2. Set it to `Enabled`
-3. Restart the browser
-4. Open DevTools, go to the console and run `PerformanceObserver.supportedEntryTypes`, you should see `container` in the list of supported entry types.
+1. Set it to `Enabled`
+1. Restart the browser
+1. [Optional] You can also launch Chrome with the flag `--enable-blink-features=ContainerTiming`
+1. Open DevTools, go to the console and run `PerformanceObserver.supportedEntryTypes`, you should see `container` in the list of supported entry types.
+1. See the [Examples](./examples) section for examples on using the Container Timing API
 
 ### Browser Extension
 
