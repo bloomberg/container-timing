@@ -234,7 +234,7 @@ _The polyfill has been deprecated in favor of trying out the API in Chrome Canar
 
 Container Timing is now available in Chrome Canary behind a flag. To enable it:
 
-1. Ensure your Chromium is recent enough (144 and upwards)
+1. Ensure your Chromium is recent enough (v145 and upwards)
 1. Open `chrome://flags/#enable-experimental-web-platform-features`
 1. Set it to `Enabled`
 1. Restart the browser
