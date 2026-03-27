@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SVG with image - Container Timing</title>
+  </head>
+  <body>
+    <div style="width: 25em" containertiming>
+      <svg
+        viewBox="0 0 256 256"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        xmlns:xlink="http://www.w3.org/1999/xlink"
+        preserveAspectRatio="xMidYMid"
+        containertiming
+      >
+        <!-- Mimics a typical design-tool export: nested groups with paths,
+             an <image> element mixed in deep among them. -->
+        <g id="artboard">
+          <g id="background">
+            <path
+              d="M8,0 L248,0 C252.4,0 256,3.6 256,8 L256,248 C256,252.4 252.4,256 248,256 L8,256 C3.6,256 0,252.4 0,248 L0,8 C0,3.6 3.6,0 8,0 Z"
+              fill="#16213e"
+            />
+          </g>
+          <g id="frame-group">
+            <!-- Decorative corner paths forming a frame -->
+            <path d="M20,20 L70,20 L70,28 L28,28 L28,70 L20,70 Z" fill="#e94560"/>
+            <path d="M236,20 L186,20 L186,28 L228,28 L228,70 L236,70 Z" fill="#e94560"/>
+            <path d="M20,236 L70,236 L70,228 L28,228 L28,186 L20,186 Z" fill="#e94560"/>
+            <path d="M236,236 L186,236 L186,228 L228,228 L228,186 L236,186 Z" fill="#e94560"/>
+            <g id="content-group">
+              <!-- Additional inner decorative paths -->
+              <path d="M38,38 L60,38 L60,44 L44,44 L44,60 L38,60 Z" fill="#0f3460"/>
+              <path d="M218,38 L196,38 L196,44 L212,44 L212,60 L218,60 Z" fill="#0f3460"/>
+              <path d="M38,218 L60,218 L60,212 L44,212 L44,196 L38,196 Z" fill="#0f3460"/>
+              <path d="M218,218 L196,218 L196,212 L212,212 L212,196 L218,196 Z" fill="#0f3460"/>
+              <!-- The raster image sits deep inside the group hierarchy,
+                   alongside the decorative paths above. -->
+              <image
+                href="../svg-with-images/sample.jpg"
+                x="53"
+                y="53"
+                width="150"
+                height="150"
+                preserveAspectRatio="xMidYMid slice"
+                containertiming
+              />
+            </g>
+          </g>
+        </g>
+      </svg>
+    </div>
+    <script src="./index.js"></script>
+  </body>
+</html>

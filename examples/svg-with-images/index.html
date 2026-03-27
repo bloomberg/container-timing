@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Images within SVG - Container Timing</title>
+  </head>
+  <body>
+    <div style="width: 460px" containertiming>
+      <svg
+        viewBox="0 0 460 170"
+        width="460"
+        height="170"
+        xmlns="http://www.w3.org/2000/svg"
+        xmlns:xlink="http://www.w3.org/1999/xlink"
+        containertiming
+      >
+        <!-- Two raster images embedded inside an SVG via <image> -->
+        <image href="./sample.jpg" x="10"  y="10" width="200" height="150" containertiming />
+        <image href="./sample.jpg" x="250" y="10" width="200" height="150" containertiming />
+      </svg>
+    </div>
+    <script src="./index.js"></script>
+  </body>
+</html>

@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Video (with poster) - Container Timing</title>
+  </head>
+  <body>
+    <div style="width: 640px" containertiming>
+      <video width="640" height="360" controls poster="./poster.jpg" containertiming>
+        <source src="../video.mp4" type="video/mp4" />
+        <source src="../video.webm" type="video/webm" />
+      </video>
+    </div>
+    <script src="./index.js"></script>
+  </body>
+</html>
