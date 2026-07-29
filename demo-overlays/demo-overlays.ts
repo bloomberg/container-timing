@@ -14,7 +14,7 @@ export function showRectsOnScreen(rects: Rect[]): void {
         div.style.top = `${rect.top}px`;
         div.style.width = `${rect.width}px`;
         div.style.height = `${rect.height}px`;
-        div.setAttribute("containertiming-ignore", "");
+        div.setAttribute("containertimingignore", "");
         document.body.appendChild(div);
     });
 }
@@ -26,7 +26,7 @@ export function showBoundingRect(rect: Rect): void {
     div.style.top = `${rect.top}px`;
     div.style.width = `${rect.width}px`;
     div.style.height = `${rect.height}px`;
-    div.setAttribute("containertiming-ignore", "");
+    div.setAttribute("containertimingignore", "");
     document.body.appendChild(div);
 }
 
