@@ -14,7 +14,8 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "http-server ./examples -c-1 -a 127.0.0.1 -p 8080 -o"
+    "build": "rm -rf public && mkdir -p public/demo-overlays && cd demo-overlays && npm run build && cd .. && cp -r examples public/examples && cp demo-overlays/demo-overlays.js demo-overlays/demo-overlays.js.map demo-overlays/demo-overlays.css public/demo-overlays/",
+    "start": "npm run build && http-server ./public -c-1 -a 127.0.0.1 -p 8080 -o /examples"
   },
   "author": "",
   "license": "ISC"

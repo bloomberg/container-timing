@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Container Timing Examples</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      max-width: 800px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+      color: #222;
+    }
+    h1 { margin-bottom: 0.25rem; }
+    .subtitle {
+      color: #555;
+      margin-bottom: 2rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th {
+      text-align: left;
+      border-bottom: 2px solid #ccc;
+      padding: 0.5rem 0.75rem;
+    }
+    td {
+      padding: 0.5rem 0.75rem;
+      border-bottom: 1px solid #eee;
+      vertical-align: top;
+    }
+    td a {
+      font-weight: bold;
+      text-decoration: none;
+      color: #0057b8;
+    }
+    td a:hover { text-decoration: underline; }
+    .desc { color: #444; font-size: 0.9rem; }
+    .todo { color: #999; font-size: 0.85rem; font-style: italic; }
+    .supported { color: #2a7a2a; font-size: 0.85rem; }
+    .unsupported { color: #999; font-size: 0.85rem; }
+    .footnote { margin-top: 1rem; font-size: 0.8rem; color: #555; }
+    .tip {
+      position: relative;
+      cursor: help;
+      color: #888;
+      text-decoration: underline dotted;
+    }
+    .tip::after {
+      content: attr(data-tip);
+      display: none;
+      position: absolute;
+      bottom: 125%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #333;
+      color: #fff;
+      font-size: 0.75rem;
+      font-weight: normal;
+      white-space: nowrap;
+      padding: 0.3rem 0.6rem;
+      border-radius: 4px;
+      pointer-events: none;
+      z-index: 10;
+    }
+    .tip:hover::after { display: block; }
+  </style>
+</head>
+<body>
+  <h1>Container Timing Examples</h1>
+  <p class="subtitle">Demos for the <a href="https://wicg.github.io/container-timing/">Container Timing API</a>.</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Example</th>
+        <th>Description</th>
+        <th>Chromium support</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a href="adding-content/">Adding content</a></td>
+        <td class="desc">Dynamically adds elements inside a <code>containertiming</code> container and observes the resulting timing entries, including <code>intersectionRect</code> and <code>damagedRects</code>.</td>
+        <td class="supported">Yes (with flag) <sup class="tip" data-tip="--enable-blink-features=ContainerTiming">?</sup></td>
+      </tr>
+      <tr>
+        <td><a href="canvas-2d/">Canvas 2D</a></td>
+        <td class="desc">Tracks container timing for a <code>&lt;canvas&gt;</code> element painted with the 2D API.</td>
+        <td class="unsupported">Not supported</td>
+      </tr>
+      <tr>
+        <td><a href="shadow-dom/">Shadow DOM</a></td>
+        <td class="desc">Shows container timing behaviour with a declarative shadow root (<code>shadowrootmode="open"</code>) containing observed elements.</td>
+        <td class="unsupported">Not supported</td>
+      </tr>
+      <tr>
+        <td><a href="skeleton-layout/">Skeleton layout</a></td>
+        <td class="desc">Replaces a shimmer skeleton with real content after a delay. Tests that the low-entropy filter correctly ignores solid-colour placeholder blocks.</td>
+        <td class="supported">Yes (with flag) <sup class="tip" data-tip="--enable-blink-features=ContainerTiming">?</sup></td>
+      </tr>
+      <tr>
+        <td><a href="svg/">SVG</a></td>
+        <td class="desc">Measures container timing for an inline SVG with nested groups, gradients, and decorative paths.</td>
+        <td class="unsupported">Not supported</td>
+      </tr>
+      <tr>
+        <td><a href="svg-as-image/">SVG as image</a></td>
+        <td class="desc">Tracks timing when an SVG file is loaded via an <code>&lt;img src="…svg"&gt;</code> tag rather than inlined.</td>
+        <td class="supported">Yes (with flag) <sup class="tip" data-tip="--enable-blink-features=ContainerTiming">?</sup></td>
+      </tr>
+      <tr>
+        <td><a href="svg-with-image/">SVG with image</a></td>
+        <td class="desc">Measures timing for an SVG that embeds a raster image deep within its group hierarchy.</td>
+        <td class="supported">Yes (with flag) <sup class="tip" data-tip="--enable-blink-features=ContainerTiming">?</sup></td>
+      </tr>
+      <tr>
+        <td><a href="svg-with-images/">SVG with multiple images</a></td>
+        <td class="desc">Like the above, but with multiple raster images embedded inside the SVG via <code>&lt;image&gt;</code> elements.</td>
+        <td class="supported">Yes (with flag) <sup class="tip" data-tip="--enable-blink-features=ContainerTiming">?</sup></td>
+      </tr>
+      <tr>
+        <td><a href="svg-with-text/">SVG with text</a></td>
+        <td class="desc">Measures timing for an SVG containing text elements at multiple nesting levels.</td>
+        <td class="supported">Yes (with flag) <sup class="tip" data-tip="--enable-blink-features=ContainerTiming">?</sup></td>
+      </tr>
+      <tr>
+        <td><a href="table/table.html">Table</a></td>
+        <td class="desc">Container timing for a complex flexbox-based virtualized table layout with transform-positioned rows and columns.</td>
+        <td class="supported">Yes (with flag) <sup class="tip" data-tip="--enable-blink-features=ContainerTiming">?</sup></td>
+      </tr>
+      <tr>
+        <td><a href="video/no-poster/">Video (no poster)</a></td>
+        <td class="desc">Tracks container timing for a <code>&lt;video&gt;</code> element without a poster image.</td>
+        <td class="unsupported">Not supported</td>
+      </tr>
+      <tr>
+        <td><a href="video/with-poster/">Video (with poster)</a></td>
+        <td class="desc">Like the above, but with a <code>poster</code> attribute to test timing when an initial poster frame is displayed.</td>
+        <td class="supported">Yes (with flag) <sup class="tip" data-tip="--enable-blink-features=ContainerTiming">?</sup></td>
+      </tr>
+      <tr>
+        <td><a href="webgl/">WebGL</a></td>
+        <td class="desc">Tracks container timing for a <code>&lt;canvas&gt;</code> element rendered with WebGL.</td>
+        <td class="unsupported">Not supported</td>
+      </tr>
+    </tbody>
+  </table>
+
+</body>
+</html>
