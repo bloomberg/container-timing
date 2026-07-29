@@ -1,3 +1,7 @@
 node_modules
-index.html
+polyfill.js
+polyfill.js.map
+demo-overlays.js
+demo-overlays.js.map
 public
+index.html
