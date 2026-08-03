@@ -112,7 +112,7 @@ We now describe precisely what information is exposed via the WebPerf API. The P
 - `size`: The size of the combined region painted (so far) within this container
 - `firstRenderTime`: A [DOMHighResTimeStamp](https://developer.mozilla.org/en-US/docs/Web/API/DOMHighResTimeStamp) of the first paint time for this container
 - `duration`: A [DOMHighResTimeStamp](https://developer.mozilla.org/en-US/docs/Web/API/DOMHighResTimeStamp) set to 0
-- `lastPaintedElement`: An [Element](https://dom.spec.whatwg.org/#concept-element) set to the last painted element (this may need to be a set of elements painted)
+- `lastPaintedElement`: A [HTMLElement](https://html.spec.whatwg.org/multipage/dom.html#htmlelement) set to the last painted element (this may need to be a set of elements painted)
 
 ### Ignoring parts of the DOM
 
