@@ -11,6 +11,7 @@ _Note: This API plans to go to [Origin Trial](./ORIGIN_TRIAL.md) during Chrome m
 
 - [Explainer Issues](https://github.com/WICG/container-timing/issues)
 - [Github Repo](https://github.com/WICG/container-timing)
+- [Spec](https://wicg.github.io/container-timing/)
 
 ## Table Of Contents
 
