@@ -30,7 +30,7 @@ urlPrefix: https://w3c.github.io/IntersectionObserver/; spec: INTERSECTION-OBSER
 Introduction {#intro}
 =====================
 
-The Container Timing API enables monitoring when annotated sections of the DOM are displayed on screen and have finished their initial paint. A developer can mark subsections of the DOM with the <code>containertiming</code> attribute (similar to <code>elementtiming</code> for the Element Timing API) and receive performance entries when that section has been painted for the first time.
+The Container Timing API enables monitoring when annotated sections of the DOM are displayed on screen and have finished their initial paint. A developer can mark subsections of the DOM with the {{HTMLElement/containerTiming}} attribute (similar to <code>elementtiming</code> for the Element Timing API) and receive performance entries when that section has been painted for the first time.
 
 This API allows developers to measure the timing of various components in their pages. As developers increasingly organize their applications into components, there's a growing demand to measure performance on subsections of an application or a web page.
 
@@ -64,7 +64,7 @@ Usage Example {#example-usage}
 The following example demonstrates how to register a container root and observe its paint timings.
 
 <div class="example">
-Registration is on a per-element basis using the <code>containertiming</code> attribute:
+Registration is on a per-element basis using the {{HTMLElement/containerTiming}} attribute:
 
 ```html
 <div containertiming="foobar">
@@ -92,7 +92,7 @@ Ignoring Subtrees {#ignoring-subtrees}
 ---------------------------------------
 
 <div class="example">
-Parts of the DOM tree can be ignored using the <code>containertimingignore</code> attribute:
+Parts of the DOM tree can be ignored using the {{HTMLElement/containerTimingIgnore}} attribute:
 
 ```html
 <div containertiming="foobar">
@@ -106,9 +106,9 @@ Parts of the DOM tree can be ignored using the <code>containertimingignore</code
 Terminology {#terminology}
 ===========================
 
-A <dfn export>container root</dfn> is a {{HTMLElement}} that has the <code>containertiming</code> attribute.
+A <dfn export>container root</dfn> is a {{HTMLElement}} that has the {{HTMLElement/containerTiming}} attribute.
 
-An <dfn export>ignored subtree</dfn> is a subtree rooted at a {{HTMLElement}} with the <code>containertimingignore</code> attribute.
+An <dfn export>ignored subtree</dfn> is a subtree rooted at a {{HTMLElement}} with the {{HTMLElement/containerTimingIgnore}} attribute.
 
 A <dfn export>painted region</dfn> is a region (collection of rectangles) representing all the painted portions of a [=container root=] accumulated since it was first observed, expressed in CSS pixels. The painted region is maintained in the viewport coordinate space. If the [=container root=] element moves (e.g. due to layout changes or {{moveBefore()}}), previously accumulated rectangles are not adjusted — the region continues to expand in viewport coordinates.
 
@@ -230,7 +230,7 @@ To <dfn>create a Container Timing Record</dfn> given a [=PaintTimingMixin/paint 
 Registering Container Roots {#registering-containers}
 ------------------------------------------------------
 
-When an {{HTMLElement}} with a <code>containertiming</code> content attribute is connected to the document:
+When an {{HTMLElement}} with a {{HTMLElement/containerTiming}} content attribute is connected to the document:
 
 1. The user agent must register the element as a [=container root=].
 2. The user agent must initialize an empty [=painted region=] for the [=container root=].
@@ -240,14 +240,14 @@ Removing the containertiming attribute {#removing-containertiming}
 ------------------------------------------------------
 
 <div algorithm="remove containertiming attribute">
-When the <code>containertiming</code> content attribute is removed from an {{HTMLElement}} |element|, perform the following steps:
+When the {{HTMLElement/containerTiming}} content attribute is removed from an {{HTMLElement}} |element|, perform the following steps:
 
 1. Let |document| be |element|'s [=Node/node document=].
 2. If |document|'s [=container root records map=] contains an entry for |element|, remove that entry.
 
 </div>
 
-Note: If the <code>containertiming</code> attribute is later re-added to the same element, a new [=Container Timing Record=] will be created on the next paint. The [=painted region=] starts fresh — prior paint data is not preserved.
+Note: If the {{HTMLElement/containerTiming}} attribute is later re-added to the same element, a new [=Container Timing Record=] will be created on the next paint. The [=painted region=] starts fresh — prior paint data is not preserved.
 
 Disconnecting a container root {#disconnecting-container-root}
 ------------------------------------------------------
@@ -260,7 +260,7 @@ When a [=container root=] {{HTMLElement}} |element| is disconnected from the doc
 
 </div>
 
-Note: If the element is reconnected to the document while still having the <code>containertiming</code> attribute, it is treated as a new [=container root=] registration. A new [=Container Timing Record=] will be created on the next paint with a fresh [=painted region=].
+Note: If the element is reconnected to the document while still having the {{HTMLElement/containerTiming}} attribute, it is treated as a new [=container root=] registration. A new [=Container Timing Record=] will be created on the next paint with a fresh [=painted region=].
 
 Handle Element Painted for Container Timing {#handle-element-painted}
 ----------------------------------------------------------------------
@@ -271,7 +271,7 @@ When an element is painted and the user agent needs to handle container timing u
 1. If |element| does not [=Contribute to container timing=], return.
 2. Let |containerRoot| be the result of <a>get the container root element</a> given |element|.
 3. If |containerRoot| is null, return.
-4. Let |record| be the entry in |document|'s <a>container root records map</a> for |containerRoot|. If no such entry exists, set |record| to the result of <a>create a Container Timing Record</a> given |paintTimingInfo| and the value of |containerRoot|'s <code>containertiming</code> content attribute; then add (|containerRoot| → |record|) to |document|'s <a>container root records map</a>.
+4. Let |record| be the entry in |document|'s <a>container root records map</a> for |containerRoot|. If no such entry exists, set |record| to the result of <a>create a Container Timing Record</a> given |paintTimingInfo| and the value of |containerRoot|'s {{HTMLElement/containerTiming}} content attribute; then add (|containerRoot| → |record|) to |document|'s <a>container root records map</a>.
 5. Let |enclosingRect| be the smallest enclosing rectangle of |intersectionRect|.
 6. <a>Maybe update the last new painted area</a> for |record| given |document|, |containerRoot|, |element|, |enclosingRect|, and |paintTimingInfo|.
 7. Mark the {{Document}} as having pending container timing changes.
@@ -336,7 +336,7 @@ Getting the container root Element {#getting-container-root-element}
 To <dfn>get the container root element</dfn> given an {{HTMLElement}} |element|, perform the following steps:
 
 1. If |element| is null, return null.
-2. If |element|'s <code>containertiming</code> content attribute is present, return |element|.
+2. If |element|'s {{HTMLElement/containerTiming}} content attribute is present, return |element|.
 3. If |element|'s parentElement is not null, return the result of <a>get the container root element</a> given |element|'s parentElement.
 4. Return null.
     </div>
@@ -356,10 +356,10 @@ To <dfn>maybe update the last new painted area</dfn> for a [=Container Timing Re
     1. Set |record|'s [=Container Timing Record/lastNewPaintedAreaElement=] to |element|.
     2. Set |record|'s [=Container Timing Record/lastNewPaintedAreaSize=] to |newPaintedArea|.
 7. Set |record|'s [=Container Timing Record/hasPendingChanges=] to true.
-8. If |containerRoot|'s <code>containertimingignore</code> content attribute is present, return.
+8. If |containerRoot|'s {{HTMLElement/containerTimingIgnore}} content attribute is present, return.
 9. Let |parentContainerRoot| be the result of <a>get the parent container root element</a> given |containerRoot|.
 10. If |parentContainerRoot| is null, return.
-11. Let |parentRecord| be the entry in |document|'s <a>container root records map</a> for |parentContainerRoot|. If no such entry exists, set |parentRecord| to the result of <a>create a Container Timing Record</a> given |paintTimingInfo| and the value of |parentContainerRoot|'s <code>containertiming</code> content attribute; then add (|parentContainerRoot| → |parentRecord|) to |document|'s <a>container root records map</a>.
+11. Let |parentRecord| be the entry in |document|'s <a>container root records map</a> for |parentContainerRoot|. If no such entry exists, set |parentRecord| to the result of <a>create a Container Timing Record</a> given |paintTimingInfo| and the value of |parentContainerRoot|'s {{HTMLElement/containerTiming}} content attribute; then add (|parentContainerRoot| → |parentRecord|) to |document|'s <a>container root records map</a>.
 12. <a>Maybe update the last new painted area</a> for |parentRecord| given |document|, |parentContainerRoot|, |element|, |enclosingRect|, and |paintTimingInfo|.
     </div>
 
