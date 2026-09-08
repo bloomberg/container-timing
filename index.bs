@@ -127,6 +127,8 @@ interface PerformanceContainerTiming : PerformanceEntry {
     readonly attribute DOMHighResTimeStamp firstRenderTime;
     readonly attribute HTMLElement? lastPaintedElement;
     readonly attribute HTMLElement? rootElement;
+
+    [Default] object toJSON();
 };
 
 PerformanceContainerTiming includes PaintTimingMixin;
@@ -163,6 +165,8 @@ The <dfn attribute>firstRenderTime</dfn> attribute must return the value of [=th
 The <dfn attribute>lastPaintedElement</dfn> attribute must return the value of [=this=]'s [=ContainerTiming/lastPaintedElement=].
 
 The <dfn attribute>rootElement</dfn> attribute must return the value of [=this=]'s [=ContainerTiming/rootElement=].
+
+When {{PerformanceContainerTiming/toJSON()}} is called, run [=default toJSON steps=].
 
 </div>
 
