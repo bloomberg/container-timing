@@ -166,6 +166,8 @@ The <dfn attribute>lastPaintedElement</dfn> attribute must return the value of [
 
 The <dfn attribute>rootElement</dfn> attribute must return the value of [=this=]'s [=ContainerTiming/rootElement=].
 
+When {{PerformanceContainerTiming/toJSON()}} is called, run [=default toJSON steps=].
+
 </div>
 
 Note: The user agent needs to maintain the <a>container root records map</a> so that removed content does not introduce memory leaks. In particular, it can tie the lifetime of the entries to weak pointers to the {{HTMLElement}}s so that they can be cleaned up sometime after the {{HTMLElement}}s are removed. Since the map is not exposed to web developers, this does not expose garbage collection timing.
